@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\refs\BlessingStudio.WonderNetwork\src\BlessingStudio.WonderNetwork\BlessingStudio.WonderNetwork.csproj" />
+  </ItemGroup>
+
 </Project>

@@ -5,6 +5,10 @@ VisualStudioVersion = 17.7.34031.279
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BlessingStudio.Wrap", "BlessingStudio.Wrap\BlessingStudio.Wrap.csproj", "{907DFD79-4AAB-4EC2-864E-E8869441CEE9}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "refs", "refs", "{BF315ED3-D2BA-464D-977D-5850A909A974}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BlessingStudio.WonderNetwork", "..\refs\BlessingStudio.WonderNetwork\src\BlessingStudio.WonderNetwork\BlessingStudio.WonderNetwork.csproj", "{55EF0F1B-96CE-4640-85CC-5BDE055A12CF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,9 +19,16 @@ Global
 		{907DFD79-4AAB-4EC2-864E-E8869441CEE9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{907DFD79-4AAB-4EC2-864E-E8869441CEE9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{907DFD79-4AAB-4EC2-864E-E8869441CEE9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{55EF0F1B-96CE-4640-85CC-5BDE055A12CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{55EF0F1B-96CE-4640-85CC-5BDE055A12CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{55EF0F1B-96CE-4640-85CC-5BDE055A12CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{55EF0F1B-96CE-4640-85CC-5BDE055A12CF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{55EF0F1B-96CE-4640-85CC-5BDE055A12CF} = {BF315ED3-D2BA-464D-977D-5850A909A974}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {2A198D69-EA06-4730-883B-F73B3E4DE5B7}
