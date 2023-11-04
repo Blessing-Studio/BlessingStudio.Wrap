@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "BlessingStudio.Wrap.Server": {
+      "commandName": "Project"
+    },
+    "Docker": {
+      "commandName": "Docker"
+    }
+  }
+}

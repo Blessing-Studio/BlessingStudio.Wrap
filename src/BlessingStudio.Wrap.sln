@@ -11,6 +11,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BlessingStudio.WonderNetwor
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "STUN", "..\refs\NatTypeTester\STUN\STUN.csproj", "{6C059A2D-8194-41B0-ACC1-0A11B0DECFBB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlessingStudio.Wrap.Server", "BlessingStudio.Wrap.Server\BlessingStudio.Wrap.Server.csproj", "{74D352BB-DE70-4ADB-96D6-B850232FF36E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlessingStudio.Wrap.Client", "BlessingStudio.Wrap.Client\BlessingStudio.Wrap.Client.csproj", "{EB74C439-A7F2-4C9B-8573-52A70FE96D4E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -29,6 +33,14 @@ Global
 		{6C059A2D-8194-41B0-ACC1-0A11B0DECFBB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6C059A2D-8194-41B0-ACC1-0A11B0DECFBB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6C059A2D-8194-41B0-ACC1-0A11B0DECFBB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{74D352BB-DE70-4ADB-96D6-B850232FF36E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{74D352BB-DE70-4ADB-96D6-B850232FF36E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{74D352BB-DE70-4ADB-96D6-B850232FF36E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{74D352BB-DE70-4ADB-96D6-B850232FF36E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EB74C439-A7F2-4C9B-8573-52A70FE96D4E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EB74C439-A7F2-4C9B-8573-52A70FE96D4E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EB74C439-A7F2-4C9B-8573-52A70FE96D4E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EB74C439-A7F2-4C9B-8573-52A70FE96D4E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
