@@ -27,6 +27,12 @@ namespace BlessingStudio.Wrap.Protocol
             Packets[PacketType.Login] = typeof(LoginPacket);
             Packets[PacketType.LoginSuccessful] = typeof(LoginSuccessfulPacket);
             Packets[PacketType.LoginFailed] = typeof(LoginFailedPacket);
+            Packets[PacketType.PluginMessage] = typeof(PluginMessagePacket);
+            Packets[PacketType.Disconnect] = typeof(DisconnectPacket);
+            Packets[PacketType.KeepAlive] = typeof(KeepAlivePacket);
+            Packets[PacketType.ConnectRequest] = typeof(ConnectRequestPacket);
+            Packets[PacketType.ConnectAccept] = typeof(ConnectAcceptPacket);
+            Packets[PacketType.IPInfo] = typeof(IPInfoPacket);
         }
     }
 }
