@@ -1,0 +1,6 @@
+[submodule "refs/NatTypeTester"]
+	path = refs/NatTypeTester
+	url = https://github.com/HMBSbige/NatTypeTester
+[submodule "refs/BlessingStudio.WonderNetwork"]
+	path = refs/BlessingStudio.WonderNetwork
+	url = https://github.com/Blessing-Studio/BlessingStudio.WonderNetwork
