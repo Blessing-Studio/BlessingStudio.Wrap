@@ -107,7 +107,7 @@ namespace BlessingStudio.Wrap.Protocol
                         }
                         else
                         {
-                            stream.WriteByte(0x01);
+                            stream.WriteByte(0x00);
                         }
                         break;
                     default:
