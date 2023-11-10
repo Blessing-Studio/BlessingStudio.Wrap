@@ -35,6 +35,10 @@ namespace BlessingStudio.Wrap.Utils
             await stunClient.QueryAsync();
             return stunClient.State.PublicEndPoint;
         }
+        public static NatType GetNatType()
+        {
+            return GetNatTypeAsync().GetAwaiter().GetResult();
+        }
         public static async Task<NatType> GetNatTypeAsync()
         {
             using StunClient3489 stunClient = new(new(Dns.GetHostAddresses(STUNServer).First(), 3478), IPEndPoint.Parse("0.0.0.0"));

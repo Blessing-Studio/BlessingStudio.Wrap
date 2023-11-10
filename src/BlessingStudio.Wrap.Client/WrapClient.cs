@@ -35,7 +35,7 @@ namespace BlessingStudio.Wrap.Client
             Close();
             Client.Connect(address, port);
             ServerConnection = new(Client.GetStream());
-            ServerConnection.Serilizers[typeof(IPacket)] = new PacketSerializer();
+            ServerConnection.Serializers[typeof(IPacket)] = new PacketSerializer();
         }
         public void Close()
         {
@@ -60,23 +60,24 @@ namespace BlessingStudio.Wrap.Client
             MainChannel = ServerConnection.CreateChannel("main");
             // Add handlers
 
-            ServerConnection.ReceivedObject += (e) =>
+            MainChannel.AddHandler((e) =>
             {
                 if(e.Object is LoginSuccessfulPacket loginSuccessfulPacket)
                 {
                     UserToken = loginSuccessfulPacket.UserToken;
+                    Console.WriteLine(UserToken);
                 }
                 else if(e.Object is LoginFailedPacket loginFailedPacket)
                 {
                     Dispose();
                     DisconnectReason = loginFailedPacket.Reason;
                 }
-            };
+            });
 
             ServerConnection.Start();
             MainChannel.Send(new LoginPacket()
             {
-                UseCustomToken = userToken == "_",
+                UseCustomToken = !(userToken == "_"),
                 UserToken = userToken
             });
             while (true)

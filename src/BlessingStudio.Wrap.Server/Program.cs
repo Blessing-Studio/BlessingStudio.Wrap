@@ -4,7 +4,9 @@
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello, World!");
+            WrapServer wrapServer = new WrapServer();
+            Thread.Sleep(2000);
+            wrapServer.Start();
         }
     }
 }

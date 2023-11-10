@@ -6,16 +6,17 @@ namespace BlessingStudio.Wrap.Client
 {
     internal class Program
     {
-        static async Task Main(string[] args)
+        static void Main(string[] args)
         {
             Console.WriteLine("NAT类型");
-            Console.WriteLine(await StunUtils.GetNatTypeAsync());
+            Console.WriteLine(StunUtils.GetNatType());
             IPEndPoint iPEndPoint = IPEndPoint.Parse("0.0.0.0");
             iPEndPoint.Port = new Random().Next(20000, 60000);
-            while (true)
-            {
-                Console.WriteLine(await StunUtils.GetRemoteIPAsync(iPEndPoint));
-            }
+            Console.WriteLine(StunUtils.GetRemoteIP(iPEndPoint));
+            WrapClient wrapClient = new WrapClient();
+            Thread.Sleep(5000);
+            wrapClient.Connect(IPAddress.Parse("127.0.0.1"));
+            wrapClient.Start();
         }
     }
 }
