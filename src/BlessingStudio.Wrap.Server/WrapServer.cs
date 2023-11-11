@@ -18,6 +18,7 @@ namespace BlessingStudio.Wrap.Server
     {
         public TcpListener Listener;
         public UserManager Users { get; private set; } = new();
+        public RequestManager Requests { get; private set; } = new();
         public Dictionary<IConnection, bool> Logined { get; private set; } = new();
         public WrapServer(int port = ConstValue.ServerPort)
         {
@@ -76,9 +77,15 @@ namespace BlessingStudio.Wrap.Server
                     });
                     mainChannel.AddHandler((e) =>
                     {
+                        if (!Logined[e.Connection]) return;
                         if(e.Object is ConnectRequestPacket requestPacket)
                         {
-
+                            UserInfo? userInfo = Users.Find(requestPacket.UserToken);
+                            if(userInfo != null)
+                            {
+                                UserInfo sender = Users.Find(e.Connection)!;
+                                Requests.AddRequest(new(sender, userInfo));
+                            }
                         }
                     });
                     connection.Serializers[typeof(IPacket)] = new PacketSerializer();

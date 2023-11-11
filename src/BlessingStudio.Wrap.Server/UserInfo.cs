@@ -24,13 +24,15 @@ namespace BlessingStudio.Wrap.Server
         {
             return UserToken.GetHashCode();
         }
-        public static bool operator ==(UserInfo left, UserInfo right)
+        public static bool operator ==(UserInfo? left, UserInfo? right)
         {
+            if(left == null && right == null) return true;
+            if(left == null || right == null) return false;
             return left.Equals(right);
         }
-        public static bool operator !=(UserInfo left, UserInfo right)
+        public static bool operator !=(UserInfo? left, UserInfo? right)
         {
-            return !left.Equals(right);
+            return !(left == right);
         }
     }
 }

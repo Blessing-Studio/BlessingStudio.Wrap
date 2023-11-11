@@ -1,4 +1,5 @@
 ﻿using BlessingStudio.WonderNetwork;
+using BlessingStudio.WonderNetwork.Interfaces;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -40,13 +41,21 @@ namespace BlessingStudio.Wrap.Server.Managers
         {
             users.RemoveAll(x => x.UserToken == userToken );
         }
-        public UserInfo Find(string userToken)
+        public UserInfo? Find(string userToken)
         {
             foreach (UserInfo userInfo in users)
             {
                 if(userInfo.UserToken == userToken) return userInfo;
             }
-            throw new InvalidOperationException("Not Found");
+            return null;
+        }
+        public UserInfo? Find(IConnection connection)
+        {
+            foreach (UserInfo userInfo in users)
+            {
+                if (userInfo.Connection == connection) return userInfo;
+            }
+            return null;
         }
         public void DisconnectAll()
         {
