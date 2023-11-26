@@ -74,6 +74,19 @@ namespace BlessingStudio.Wrap.Client
                 }
             });
 
+            MainChannel.AddHandler((e) =>
+            {
+                if(e.Object is ConnectRequestPacket connectRequestPacket)
+                {
+                    
+                    MainChannel.Send(new ConnectAcceptPacket()
+                    {
+                        UserToken = connectRequestPacket.UserToken,
+                    });
+                    IPInfoPacket infoPacket = ServerConnection.WaitFor<IPInfoPacket>("main", TimeSpan.FromSeconds(60))!;
+                }
+            });
+
             ServerConnection.Start();
             MainChannel.Send(new LoginPacket()
             {
@@ -84,6 +97,16 @@ namespace BlessingStudio.Wrap.Client
             {
                 Thread.Sleep(5000);
                 MainChannel.Send(new KeepAlivePacket());
+            }
+        }
+        public void MakeRequest(string userToken)
+        {
+            if(IsConnected)
+            {
+                MainChannel!.Send(new ConnectRequestPacket()
+                {
+                    UserToken = userToken
+                });
             }
         }
     }

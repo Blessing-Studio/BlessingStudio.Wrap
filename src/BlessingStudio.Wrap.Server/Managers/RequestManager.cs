@@ -40,6 +40,10 @@ namespace BlessingStudio.Wrap.Server.Managers
         {
             requestInfos.RemoveAll(x => x.Requester == requester && x.Receiver == receiver);
         }
+        public RequestInfo? Find(UserInfo requester, UserInfo receiver)
+        {
+            return requestInfos.FirstOrDefault((x) => x.Requester == requester && x.Receiver == receiver);
+        }
 
         public IEnumerator<RequestInfo> GetEnumerator()
         {

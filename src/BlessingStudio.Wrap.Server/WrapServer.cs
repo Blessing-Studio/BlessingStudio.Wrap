@@ -78,6 +78,7 @@ namespace BlessingStudio.Wrap.Server
                     mainChannel.AddHandler((e) =>
                     {
                         if (!Logined[e.Connection]) return;
+                        UserInfo user = Users.Find(e.Connection)!;
                         if(e.Object is ConnectRequestPacket requestPacket)
                         {
                             UserInfo? userInfo = Users.Find(requestPacket.UserToken);
@@ -85,6 +86,37 @@ namespace BlessingStudio.Wrap.Server
                             {
                                 UserInfo sender = Users.Find(e.Connection)!;
                                 Requests.AddRequest(new(sender, userInfo));
+                            }
+                        }
+                        else if(e.Object is ConnectAcceptPacket acceptPacket)
+                        {
+                            UserInfo? receiver = Users.Find(acceptPacket.UserToken);
+                            if (receiver != null)
+                            {
+                                RequestInfo? requestInfo = Requests.Find(user, receiver);
+                                if (requestInfo != null)
+                                {
+                                    receiver.Connection.Send("main", new ConnectAcceptPacket()
+                                    {
+                                        UserToken = user.UserToken,
+                                        IPAddress = acceptPacket.IPAddress,
+                                        port = acceptPacket.port
+                                    });
+                                    Requests.RemoveRequest(requestInfo);
+                                }
+                            }
+                        }
+                        else if(e.Object is IPInfoPacket infoPacket)
+                        {
+                            UserInfo? userInfo = Users.Find(infoPacket.UserToken);
+                            if (userInfo != null)
+                            {
+                                userInfo.Connection.Send("main", new IPInfoPacket()
+                                {
+                                    IPAddress = infoPacket.IPAddress,
+                                    port = infoPacket.port,
+                                    UserToken = user.UserToken
+                                });
                             }
                         }
                     });
