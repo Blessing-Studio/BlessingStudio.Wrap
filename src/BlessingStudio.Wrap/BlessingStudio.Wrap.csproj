@@ -6,6 +6,14 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <NoWarn>CS1701;CS1702;VSTHRD110</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <NoWarn>CS1701;CS1702;VSTHRD110</NoWarn>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\refs\BlessingStudio.WonderNetwork\src\BlessingStudio.WonderNetwork\BlessingStudio.WonderNetwork.csproj" />
     <ProjectReference Include="..\..\refs\NatTypeTester\STUN\STUN.csproj" />

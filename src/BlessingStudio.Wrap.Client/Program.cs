@@ -17,6 +17,7 @@ namespace BlessingStudio.Wrap.Client
             Thread.Sleep(5000);
             wrapClient.Connect(IPAddress.Parse("127.0.0.1"));
             wrapClient.Start();
+            TcpClient tcpClient = new TcpClient();
         }
     }
 }

@@ -1,14 +1,9 @@
 ﻿using BlessingStudio.WonderNetwork;
 using BlessingStudio.Wrap.Protocol;
 using BlessingStudio.Wrap.Protocol.Packet;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
+using BlessingStudio.Wrap.Utils;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BlessingStudio.Wrap.Client
 {
@@ -53,7 +48,7 @@ namespace BlessingStudio.Wrap.Client
         }
         public void Start(string userToken = "_")
         {
-            if(ServerConnection == null)
+            if (ServerConnection == null)
             {
                 throw new InvalidOperationException();
             }
@@ -62,12 +57,12 @@ namespace BlessingStudio.Wrap.Client
 
             MainChannel.AddHandler((e) =>
             {
-                if(e.Object is LoginSuccessfulPacket loginSuccessfulPacket)
+                if (e.Object is LoginSuccessfulPacket loginSuccessfulPacket)
                 {
                     UserToken = loginSuccessfulPacket.UserToken;
                     Console.WriteLine(UserToken);
                 }
-                else if(e.Object is LoginFailedPacket loginFailedPacket)
+                else if (e.Object is LoginFailedPacket loginFailedPacket)
                 {
                     Dispose();
                     DisconnectReason = loginFailedPacket.Reason;
@@ -76,14 +71,45 @@ namespace BlessingStudio.Wrap.Client
 
             MainChannel.AddHandler((e) =>
             {
-                if(e.Object is ConnectRequestPacket connectRequestPacket)
+                if (e.Object is ConnectRequestPacket connectRequestPacket)
                 {
-                    
+                    TcpClient client = new TcpClient();
+                    IPEndPoint iPEndPoint = IPEndPoint.Parse("0.0.0.0");
+                    iPEndPoint.Port = new Random().Next(20000, 60000);
+                    IPEndPoint remoteIpPoint = StunUtils.GetRemoteIP(iPEndPoint);
+                    client.Client.Bind(iPEndPoint);
                     MainChannel.Send(new ConnectAcceptPacket()
                     {
                         UserToken = connectRequestPacket.UserToken,
+                        IPAddress = remoteIpPoint.Address.GetAddressBytes(),
+                        port = remoteIpPoint.Port,
                     });
                     IPInfoPacket infoPacket = ServerConnection.WaitFor<IPInfoPacket>("main", TimeSpan.FromSeconds(60))!;
+                    IPEndPoint peerIP = new IPEndPoint(new IPAddress(infoPacket.IPAddress), infoPacket.port);
+                    Task.Run(() =>
+                    {
+                        bool successed = false;
+                        for(int i = 0; i < 10; i++)
+                        {
+                            try
+                            {
+                                client.Connect(peerIP);
+                            }
+                            catch (Exception e)
+                            {
+
+                            }
+                            finally
+                            {
+                                successed = true;
+                            }
+                            if(successed)
+                            {
+                                break;
+                            }
+                        }
+                        
+                    });
                 }
             });
 
@@ -101,7 +127,7 @@ namespace BlessingStudio.Wrap.Client
         }
         public void MakeRequest(string userToken)
         {
-            if(IsConnected)
+            if (IsConnected)
             {
                 MainChannel!.Send(new ConnectRequestPacket()
                 {
