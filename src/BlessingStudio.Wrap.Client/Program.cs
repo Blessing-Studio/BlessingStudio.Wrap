@@ -15,9 +15,13 @@ namespace BlessingStudio.Wrap.Client
             Console.WriteLine(StunUtils.GetRemoteIP(iPEndPoint));
             WrapClient wrapClient = new WrapClient();
             Thread.Sleep(5000);
-            wrapClient.Connect(IPAddress.Parse("127.0.0.1"));
+            wrapClient.Connect(Dns.GetHostAddresses("mcocet.top").FirstOrDefault()!);
+            Task.Run(() =>
+            {
+                string token = Console.ReadLine()!;
+                wrapClient.MakeRequest(token);
+            });
             wrapClient.Start();
-            TcpClient tcpClient = new TcpClient();
         }
     }
 }

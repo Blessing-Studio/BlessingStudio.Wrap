@@ -93,7 +93,7 @@ namespace BlessingStudio.Wrap.Server
                             UserInfo? receiver = Users.Find(acceptPacket.UserToken);
                             if (receiver != null)
                             {
-                                RequestInfo? requestInfo = Requests.Find(user, receiver);
+                                RequestInfo? requestInfo = Requests.Find(receiver, user);
                                 if (requestInfo != null)
                                 {
                                     receiver.Connection.Send("main", new ConnectAcceptPacket()

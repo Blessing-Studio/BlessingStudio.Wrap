@@ -26,9 +26,9 @@ namespace BlessingStudio.Wrap.Server
         }
         public static bool operator ==(UserInfo? left, UserInfo? right)
         {
-            if(left == null && right == null) return true;
-            if(left == null || right == null) return false;
-            return left.Equals(right);
+            if(left is null && right is null) return true;
+            if(left is null || right is null) return false;
+            return left.UserToken == right.UserToken;
         }
         public static bool operator !=(UserInfo? left, UserInfo? right)
         {
