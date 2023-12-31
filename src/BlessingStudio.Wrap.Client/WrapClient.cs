@@ -194,6 +194,7 @@ namespace BlessingStudio.Wrap.Client
                 Console.WriteLine($"Connected! {token}");
                 connectionToPeer.Client.Blocking = true;
                 Connection connection = new(connectionToPeer.GetStream());
+                connection.Serializers[typeof(IPacket)] = new PacketSerializer();
                 Channel channel = connection.CreateChannel("main");
                 PeerManager.AddPeer(token, connection);
                 new Thread(() =>

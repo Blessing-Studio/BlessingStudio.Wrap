@@ -38,7 +38,7 @@ namespace BlessingStudio.Wrap.Client
                     }
                 }
             });
-            KeepAliveThread.Start(KeepAliveThreadCancellationTokenSource);
+            KeepAliveThread.Start(KeepAliveThreadCancellationTokenSource.Token);
         }
         public void AddPeer(string token, Connection connection)
         {
