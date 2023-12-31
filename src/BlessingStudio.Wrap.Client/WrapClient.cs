@@ -1,4 +1,5 @@
 ﻿using BlessingStudio.WonderNetwork;
+using BlessingStudio.WonderNetwork.Events;
 using BlessingStudio.WonderNetwork.Utils;
 using BlessingStudio.Wrap.Protocol;
 using BlessingStudio.Wrap.Protocol.Packet;
@@ -91,7 +92,7 @@ namespace BlessingStudio.Wrap.Client
                             .ToString());
                         IPInfoPacket infoPacket = ServerConnection.WaitFor<IPInfoPacket>("main", TimeSpan.FromSeconds(60))!;
                         IPEndPoint peerIP = new IPEndPoint(new IPAddress(infoPacket.IPAddress), infoPacket.port);
-                        TryConnect(iPEndPoint, peerIP);
+                        TryConnect(iPEndPoint, peerIP, infoPacket.UserToken);
                     }
                     if (e.Object is ConnectAcceptPacket connectAcceptPacket)
                     {
@@ -109,7 +110,7 @@ namespace BlessingStudio.Wrap.Client
                         Console.WriteLine(remoteIpPoint
                             .ToString());
                         IPEndPoint peerIP = new IPEndPoint(new IPAddress(connectAcceptPacket.IPAddress), connectAcceptPacket.port);
-                        TryConnect(iPEndPoint, peerIP);
+                        TryConnect(iPEndPoint, peerIP, connectAcceptPacket.UserToken);
                     }
                 });
             });
@@ -136,7 +137,7 @@ namespace BlessingStudio.Wrap.Client
                 });
             }
         }
-        private void TryConnect(IPEndPoint local, IPEndPoint peerIP)
+        private void TryConnect(IPEndPoint local, IPEndPoint peerIP, string token)
         {
             TcpListener listener = new TcpListener(local);
             listener.ExclusiveAddressUse = false;
@@ -190,7 +191,26 @@ namespace BlessingStudio.Wrap.Client
             }
             else
             {
-                PeerManager.AddPeer(new(connectionToPeer.GetStream()));
+                Console.WriteLine($"Connected! {token}");
+                connectionToPeer.Client.Blocking = true;
+                Connection connection = new(connectionToPeer.GetStream());
+                Channel channel = connection.CreateChannel("main");
+                PeerManager.AddPeer(token, connection);
+                new Thread(() =>
+                {
+                    while(true)
+                    {
+                        channel.Send(new KeepAlivePacket());
+                        Thread.Sleep(2000);
+                    }
+                }).Start();
+                connection.AddHandler((ReceivedObjectEvent e) =>
+                {
+                    if(e.Object is DisconnectPacket packet)
+                    {
+                        Console.WriteLine(packet.Reason);
+                    }
+                });
             }
         }
     }

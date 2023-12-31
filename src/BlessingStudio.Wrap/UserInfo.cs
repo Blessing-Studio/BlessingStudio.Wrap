@@ -5,15 +5,15 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BlessingStudio.Wrap.Server
+namespace BlessingStudio.Wrap
 {
     public class UserInfo
     {
         public string UserToken { get; set; } = "";
-        public Connection Connection{ get; set; }
+        public Connection Connection { get; set; }
         public override bool Equals(object? obj)
         {
-            if(obj is UserInfo info)
+            if (obj is UserInfo info)
             {
                 return info.UserToken == UserToken;
             }
@@ -26,8 +26,8 @@ namespace BlessingStudio.Wrap.Server
         }
         public static bool operator ==(UserInfo? left, UserInfo? right)
         {
-            if(left is null && right is null) return true;
-            if(left is null || right is null) return false;
+            if (left is null && right is null) return true;
+            if (left is null || right is null) return false;
             return left.UserToken == right.UserToken;
         }
         public static bool operator !=(UserInfo? left, UserInfo? right)

@@ -9,7 +9,7 @@ using System.Reflection.Metadata;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BlessingStudio.Wrap.Server.Managers
+namespace BlessingStudio.Wrap
 {
     public class UserManager : IEnumerable<UserInfo>
     {
