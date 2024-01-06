@@ -151,7 +151,7 @@ namespace BlessingStudio.Wrap.Client
             TcpClient? connectionToPeer = null;
             Task task1 = Task.Run(() =>
             {
-                for (int i = 0; i < 20; i++)
+                for (int i = 0; i < 10; i++)
                 {
                     try
                     {
@@ -212,6 +212,7 @@ namespace BlessingStudio.Wrap.Client
                         Console.WriteLine(packet.Reason);
                     }
                 });
+                connection.Start();
             }
         }
     }

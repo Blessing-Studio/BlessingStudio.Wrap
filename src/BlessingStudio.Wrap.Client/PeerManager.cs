@@ -28,10 +28,10 @@ namespace BlessingStudio.Wrap.Client
                     {
                         foreach(var pair in KeepAliveData)
                         {
-                            if(DateTimeOffset.Now.ToUnixTimeSeconds() - pair.Value > 10)
+                            if(DateTimeOffset.Now.ToUnixTimeSeconds() - pair.Value > 30)
                             {
                                 UserInfo info = UserManager.Find(pair.Key)!;
-                                info.Connection.Send("main", new DisconnectPacket() { Reason = "You didn't send KeepAlivePacket in 10s"});
+                                info.Connection.Send("main", new DisconnectPacket() { Reason = "You didn't send KeepAlivePacket in 30s"});
                                 info.Connection.Dispose();
                             }
                         }
