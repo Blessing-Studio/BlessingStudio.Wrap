@@ -5,6 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Net;
 using System.Reflection.Metadata;
 using System.Text;
 using System.Threading.Tasks;
@@ -21,12 +22,13 @@ namespace BlessingStudio.Wrap
                 return users.AsReadOnly();
             }
         }
-        public void AddNewUser(Connection connection, string userToken)
+        public void AddNewUser(Connection connection, string userToken, IPEndPoint ip)
         {
             users.Add(new UserInfo()
             {
                 Connection = connection,
-                UserToken = userToken
+                UserToken = userToken,
+                IP = ip
             });
             connection.Disposed += e =>
             {

@@ -60,8 +60,11 @@ namespace BlessingStudio.Wrap.Server
                                 {
                                     loginSuccessfulPacket.UserToken = loginPacket.UserToken;
                                 }
+                                IPEndPoint ip = (IPEndPoint)client.Client.RemoteEndPoint;
+                                loginSuccessfulPacket.IPAddress = ip.Address.GetAddressBytes();
+                                loginSuccessfulPacket.port = ip.Port;
                                 e.Channel.Send(loginSuccessfulPacket);
-                                Users.AddNewUser(connection, loginSuccessfulPacket.UserToken);
+                                Users.AddNewUser(connection, loginSuccessfulPacket.UserToken, ip);
                                 Console.WriteLine("new user " + loginSuccessfulPacket.UserToken);
                             }
                             else
@@ -90,33 +93,31 @@ namespace BlessingStudio.Wrap.Server
                         }
                         else if(e.Object is ConnectAcceptPacket acceptPacket)
                         {
-                            UserInfo? receiver = Users.Find(acceptPacket.UserToken);
-                            if (receiver != null)
+                            UserInfo? requester = Users.Find(acceptPacket.UserToken);
+                            if (requester != null)
                             {
-                                RequestInfo? requestInfo = Requests.Find(receiver, user);
+                                RequestInfo? requestInfo = Requests.Find(requester, user);
                                 if (requestInfo != null)
                                 {
-                                    receiver.Connection.Send("main", new ConnectAcceptPacket()
+                                    requester.Connection.Send("main", new ConnectAcceptPacket()
                                     {
                                         UserToken = user.UserToken,
-                                        IPAddress = acceptPacket.IPAddress,
-                                        port = acceptPacket.port
+                                    });
+                                    Thread.Sleep(2000);
+                                    requester.Connection.Send("main", new IPInfoPacket()
+                                    {
+                                        UserToken = user.UserToken,
+                                        IPAddress = user.IP.Address.GetAddressBytes(),
+                                        port = user.IP.Port,
+                                    });
+                                    user.Connection.Send("main", new IPInfoPacket()
+                                    {
+                                        UserToken = requester.UserToken,
+                                        IPAddress = requester.IP.Address.GetAddressBytes(),
+                                        port = requester.IP.Port,
                                     });
                                     Requests.RemoveRequest(requestInfo);
                                 }
-                            }
-                        }
-                        else if(e.Object is IPInfoPacket infoPacket)
-                        {
-                            UserInfo? userInfo = Users.Find(infoPacket.UserToken);
-                            if (userInfo != null)
-                            {
-                                userInfo.Connection.Send("main", new IPInfoPacket()
-                                {
-                                    IPAddress = infoPacket.IPAddress,
-                                    port = infoPacket.port,
-                                    UserToken = user.UserToken
-                                });
                             }
                         }
                     });

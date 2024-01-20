@@ -4,6 +4,7 @@ using BlessingStudio.Wrap.Protocol.Packet;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -40,9 +41,9 @@ namespace BlessingStudio.Wrap.Client
             });
             KeepAliveThread.Start(KeepAliveThreadCancellationTokenSource.Token);
         }
-        public void AddPeer(string token, Connection connection)
+        public void AddPeer(string token, Connection connection, IPEndPoint ip)
         {
-            UserManager.AddNewUser(connection, token);
+            UserManager.AddNewUser(connection, token, ip);
             connection.AddHandler((ChannelCreatedEvent e) =>
             {
                 

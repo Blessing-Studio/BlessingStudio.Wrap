@@ -14,7 +14,7 @@ namespace BlessingStudio.Wrap.Client
             iPEndPoint.Port = new Random().Next(20000, 60000);
             Console.WriteLine(StunUtils.GetRemoteIP(iPEndPoint));
             WrapClient wrapClient = new WrapClient();
-            Thread.Sleep(5000);
+            Thread.Sleep(1000);
             wrapClient.Connect(Dns.GetHostAddresses("mcocet.top").FirstOrDefault()!);
             Task.Run(() =>
             {

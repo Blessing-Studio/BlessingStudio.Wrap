@@ -4,6 +4,7 @@ using BlessingStudio.WonderNetwork.Utils;
 using BlessingStudio.Wrap.Protocol;
 using BlessingStudio.Wrap.Protocol.Packet;
 using BlessingStudio.Wrap.Utils;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Sockets;
 
@@ -24,6 +25,7 @@ namespace BlessingStudio.Wrap.Client
         public string UserToken { get; private set; } = string.Empty;
         public string DisconnectReason { get; private set; } = string.Empty;
         public PeerManager PeerManager { get; private set; } = new PeerManager();
+        public IPEndPoint RemoteIP { get; private set; }
         public WrapClient()
         {
             Client = new();
@@ -41,6 +43,8 @@ namespace BlessingStudio.Wrap.Client
             {
                 Client.Close();
                 Client = new();
+                Client.ExclusiveAddressUse = false;
+                Client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
                 ServerConnection!.Dispose();
                 MainChannel = null;
             }
@@ -64,6 +68,8 @@ namespace BlessingStudio.Wrap.Client
                 {
                     UserToken = loginSuccessfulPacket.UserToken;
                     Console.WriteLine(UserToken);
+                    IPEndPoint iPEndPoint = new(new IPAddress(loginSuccessfulPacket.IPAddress), loginSuccessfulPacket.port);
+                    RemoteIP = iPEndPoint;
                 }
                 else if (e.Object is LoginFailedPacket loginFailedPacket)
                 {
@@ -79,38 +85,24 @@ namespace BlessingStudio.Wrap.Client
                     if (e.Object is ConnectRequestPacket connectRequestPacket)
                     {
                         //Begin connect
-                        IPEndPoint iPEndPoint = IPEndPoint.Parse("0.0.0.0");
-                        iPEndPoint.Port = new Random().Next(20000, 60000);
-                        IPEndPoint remoteIpPoint = StunUtils.GetRemoteIP(iPEndPoint);
                         MainChannel.Send(new ConnectAcceptPacket()
                         {
                             UserToken = connectRequestPacket.UserToken,
-                            IPAddress = remoteIpPoint.Address.GetAddressBytes(),
-                            port = remoteIpPoint.Port,
                         });
-                        Console.WriteLine(remoteIpPoint
+                        Console.WriteLine(RemoteIP
                             .ToString());
                         IPInfoPacket infoPacket = ServerConnection.WaitFor<IPInfoPacket>("main", TimeSpan.FromSeconds(60))!;
                         IPEndPoint peerIP = new IPEndPoint(new IPAddress(infoPacket.IPAddress), infoPacket.port);
-                        TryConnect(iPEndPoint, peerIP, infoPacket.UserToken);
+                        TryConnect(peerIP, infoPacket.UserToken);
                     }
                     if (e.Object is ConnectAcceptPacket connectAcceptPacket)
                     {
                         //Begin connect
-                        IPEndPoint iPEndPoint = IPEndPoint.Parse("0.0.0.0");
-                        iPEndPoint.Port = new Random().Next(20000, 60000);
-                        IPEndPoint remoteIpPoint = StunUtils.GetRemoteIP(iPEndPoint);
-                        Thread.Sleep(2000);
-                        MainChannel.Send(new IPInfoPacket()
-                        {
-                            UserToken = connectAcceptPacket.UserToken,
-                            IPAddress = remoteIpPoint.Address.GetAddressBytes(),
-                            port = remoteIpPoint.Port,
-                        });
-                        Console.WriteLine(remoteIpPoint
+                        Console.WriteLine(RemoteIP
                             .ToString());
-                        IPEndPoint peerIP = new IPEndPoint(new IPAddress(connectAcceptPacket.IPAddress), connectAcceptPacket.port);
-                        TryConnect(iPEndPoint, peerIP, connectAcceptPacket.UserToken);
+                        IPInfoPacket infoPacket = ServerConnection.WaitFor<IPInfoPacket>("main", TimeSpan.FromSeconds(60))!;
+                        IPEndPoint peerIP = new IPEndPoint(new IPAddress(infoPacket.IPAddress), infoPacket.port);
+                        TryConnect(peerIP, connectAcceptPacket.UserToken);
                     }
                 });
             });
@@ -137,16 +129,12 @@ namespace BlessingStudio.Wrap.Client
                 });
             }
         }
-        private void TryConnect(IPEndPoint local, IPEndPoint peerIP, string token)
+        private void TryConnect(IPEndPoint peerIP, string token)
         {
-            TcpListener listener = new TcpListener(local);
-            listener.ExclusiveAddressUse = false;
-            listener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-            listener.Start();
             TcpClient client = new TcpClient();
             client.ExclusiveAddressUse = false;
             client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-            client.Client.Bind(local);
+            client.Client.Bind(RemoteIP);
             bool successed = false;
             TcpClient? connectionToPeer = null;
             Task task1 = Task.Run(() =>
@@ -169,21 +157,6 @@ namespace BlessingStudio.Wrap.Client
                     }
                 }
             });
-            Task task2 = Task.Run(() =>
-            {
-                listener.Server.Blocking = false;
-                while (!successed)
-                {
-                    try
-                    {
-                        TcpClient tcpClient = listener.AcceptTcpClient();
-                        successed = true;
-                        connectionToPeer = tcpClient;
-                    }
-                    catch { Thread.Sleep(20); }
-                }
-                listener.Stop();
-            });
             task1.GetAwaiter().GetResult();
             if (connectionToPeer == null)
             {
@@ -196,7 +169,7 @@ namespace BlessingStudio.Wrap.Client
                 Connection connection = new(connectionToPeer.GetStream());
                 connection.Serializers[typeof(IPacket)] = new PacketSerializer();
                 Channel channel = connection.CreateChannel("main");
-                PeerManager.AddPeer(token, connection);
+                PeerManager.AddPeer(token, connection, (IPEndPoint)client.Client.RemoteEndPoint);
                 new Thread(() =>
                 {
                     while(true)

@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -11,6 +12,7 @@ namespace BlessingStudio.Wrap
     {
         public string UserToken { get; set; } = "";
         public Connection Connection { get; set; }
+        public IPEndPoint IP {  get; set; }
         public override bool Equals(object? obj)
         {
             if (obj is UserInfo info)
