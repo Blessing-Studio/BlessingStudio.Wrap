@@ -134,7 +134,7 @@ namespace BlessingStudio.Wrap.Client
             TcpClient client = new TcpClient();
             client.ExclusiveAddressUse = false;
             client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-            client.Client.Bind(RemoteIP);
+            client.Client.Bind(Client.Client.LocalEndPoint);
             bool successed = false;
             TcpClient? connectionToPeer = null;
             Task task1 = Task.Run(() =>
