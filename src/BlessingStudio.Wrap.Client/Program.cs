@@ -10,12 +10,9 @@ namespace BlessingStudio.Wrap.Client
         {
             Console.WriteLine("NAT类型");
             Console.WriteLine(StunUtils.GetNatType());
-            IPEndPoint iPEndPoint = IPEndPoint.Parse("0.0.0.0");
-            iPEndPoint.Port = new Random().Next(20000, 60000);
-            Console.WriteLine(StunUtils.GetRemoteIP(iPEndPoint));
             WrapClient wrapClient = new WrapClient();
             Thread.Sleep(1000);
-            wrapClient.Connect(Dns.GetHostAddresses("mcocet.top").FirstOrDefault()!);
+            wrapClient.Connect(new IPAddress(new byte[] { 8, 137, 84, 98 }));
             Task.Run(() =>
             {
                 string token = Console.ReadLine()!;

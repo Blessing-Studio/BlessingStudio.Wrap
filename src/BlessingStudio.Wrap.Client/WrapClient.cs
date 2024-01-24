@@ -34,7 +34,9 @@ namespace BlessingStudio.Wrap.Client
         {
             Close();
             Client.Connect(address, port);
-            ServerConnection = new(Client.GetStream());
+            NetworkStream networkStream = Client.GetStream();
+            networkStream.Socket.NoDelay = true;
+            ServerConnection = new(new SafeNetworkStream(networkStream));
             ServerConnection.Serializers[typeof(IPacket)] = new PacketSerializer();
         }
         public void Close()
@@ -166,18 +168,12 @@ namespace BlessingStudio.Wrap.Client
             {
                 Console.WriteLine($"Connected! {token}");
                 connectionToPeer.Client.Blocking = true;
-                Connection connection = new(connectionToPeer.GetStream());
+                NetworkStream networkStream = connectionToPeer.GetStream();
+                networkStream.Socket.NoDelay = true;
+                Connection connection = new(new SafeNetworkStream(networkStream));
                 connection.Serializers[typeof(IPacket)] = new PacketSerializer();
                 Channel channel = connection.CreateChannel("main");
                 PeerManager.AddPeer(token, connection, (IPEndPoint)client.Client.RemoteEndPoint);
-                new Thread(() =>
-                {
-                    while(true)
-                    {
-                        channel.Send(new KeepAlivePacket());
-                        Thread.Sleep(2000);
-                    }
-                }).Start();
                 connection.AddHandler((ReceivedObjectEvent e) =>
                 {
                     if(e.Object is DisconnectPacket packet)
