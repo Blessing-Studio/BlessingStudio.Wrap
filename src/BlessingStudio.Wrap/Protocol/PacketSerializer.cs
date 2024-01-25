@@ -33,6 +33,9 @@ namespace BlessingStudio.Wrap.Protocol
                     case ValueType.Int32:
                         value = stream.ReadInt32();
                         break;
+                    case ValueType.VatInt:
+                        value = stream.ReadVarInt();
+                        break;
                     case ValueType.Int64:
                         value = stream.ReadInt64();
                         break;
@@ -43,7 +46,7 @@ namespace BlessingStudio.Wrap.Protocol
                         value = (byte)stream.ReadByte();
                         break;
                     case ValueType.ByteArray:
-                        value = new byte[stream.ReadInt32()];
+                        value = new byte[stream.ReadVarInt()];
                         stream.Read((byte[])value);
                         break;
                     case ValueType.Bool:
@@ -81,6 +84,9 @@ namespace BlessingStudio.Wrap.Protocol
                     case ValueType.Int32:
                         stream.WriteInt32((int)value);
                         break;
+                    case ValueType.VatInt:
+                        stream.WriteVarInt((int)value); 
+                        break;
                     case ValueType.Int64: 
                         stream.WriteInt64((long)value);
                         break;
@@ -91,7 +97,7 @@ namespace BlessingStudio.Wrap.Protocol
                         stream.WriteByte((byte)value);
                         break;
                     case ValueType.ByteArray:
-                        stream.WriteInt32(((byte[])value).Length);
+                        stream.WriteVarInt(((byte[])value).Length);
                         stream.Write((byte[])value);
                         break;
                     case ValueType.Bool:

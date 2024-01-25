@@ -10,6 +10,7 @@ namespace BlessingStudio.Wrap.Protocol
     {
         String,
         Int32,
+        VatInt,
         Int64,
         Int16,
         Byte,
