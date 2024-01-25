@@ -17,7 +17,8 @@ namespace BlessingStudio.Wrap.Protocol
         KeepAlive,
         ConnectRequest,
         ConnectAccept,
-        IPInfo
+        IPInfo,
+        ConnectSuccessfully
     }
     public partial interface IPacket
     {
@@ -33,6 +34,7 @@ namespace BlessingStudio.Wrap.Protocol
             Packets[PacketType.ConnectRequest] = typeof(ConnectRequestPacket);
             Packets[PacketType.ConnectAccept] = typeof(ConnectAcceptPacket);
             Packets[PacketType.IPInfo] = typeof(IPInfoPacket);
+            Packets[PacketType.ConnectSuccessfully] = typeof(ConnectSuccessfullyPacket);
         }
     }
 }
