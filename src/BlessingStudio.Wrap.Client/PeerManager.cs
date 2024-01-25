@@ -3,6 +3,7 @@ using BlessingStudio.WonderNetwork.Events;
 using BlessingStudio.Wrap.Protocol.Packet;
 using BlessingStudio.Wrap.Utils;
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -18,13 +19,14 @@ namespace BlessingStudio.Wrap.Client
     public class PeerManager
     {
         public UserManager UserManager { get; set; } = new();
-        public Dictionary<string, long> KeepAliveData = new Dictionary<string, long>();
-        public Thread KeepAliveThread;
-        public CancellationTokenSource KeepAliveThreadCancellationTokenSource = new();
-        public ushort Nextport = 42000;
+        public Dictionary<string, long> KeepAliveData { get; } = new Dictionary<string, long>();
+        public Thread KeepAliveThread { get; }
+        public CancellationTokenSource KeepAliveThreadCancellationTokenSource { get; } = new();
+        public ushort Nextport { get; set; } = 42000;
         public IPEndPoint Server = new(new IPAddress(new byte[] { 127, 0, 0, 1 }), 25565);
-        public List<string> IgnoredConnectionId = new();
-        public object PeerSendingLock = new();
+        public List<string> IgnoredConnectionId { get; } = new();
+        public ArrayPool<byte> Buffer { get; } = ArrayPool<byte>.Create();
+        public object PeerSendingLock { get; } = new();
         public PeerManager()
         {
             KeepAliveThread = new((e) =>
@@ -53,94 +55,63 @@ namespace BlessingStudio.Wrap.Client
         public void AddPeer(string token, Connection connection, IPEndPoint ip)
         {
             UserManager.AddNewUser(connection, token, ip);
-            //new Thread(() =>
-            //{
-            //    try
-            //    {
-            //        while (true)
-            //        {
-            //            lock (PeerSendingLock)
-            //                connection.GetChannel("main").Send(new KeepAlivePacket());
-            //        }
-            //    }
-            //    catch { }
-            //}).Start();
+            new Thread(() =>
+            {
+                try
+                {
+                    while (true)
+                    {
+                        lock (PeerSendingLock)
+                            connection.GetChannel("main").Send(new KeepAlivePacket());
+                    }
+                }
+                catch { }
+            }).Start();
             connection.AddHandler((ChannelCreatedEvent e) =>
             {
-                if (e.Channel.ChannelName.Contains("connection_") && !IgnoredConnectionId.Contains(e.Channel.ChannelName.Replace("connection_", string.Empty)))
+                Channel channel = e.Channel;
+                if (channel.ChannelName.Contains("connection_") && !IgnoredConnectionId.Contains(channel.ChannelName.Replace("connection_", string.Empty)))
                 {
                     new Thread(() =>
                     {
+                        TcpClient client = new TcpClient();
                         try
                         {
-                            TcpClient client = new TcpClient();
-                            Channel channel = e.Channel;
+                            client.Connect(Server);
+                            channel.Send(new ConnectSuccessfullyPacket());
+                        }
+                        catch
+                        {
+                            client.Close();
+                            lock (PeerSendingLock)
+                                connection.DestroyChannel(channel.ChannelName);
+                        }
+                        channel.AddHandler((ReceivedBytesEvent e) =>
+                        {
                             try
                             {
-                                client.Connect(Server);
+                                lock (PeerSendingLock)
+                                    client.Client.Send(e.Data);
                             }
                             catch
                             {
                                 client.Close();
                                 lock (PeerSendingLock)
                                     connection.DestroyChannel(channel.ChannelName);
-                                return;
                             }
-                            channel.AddHandler((ReceivedBytesEvent e) =>
-                            {
-                                try
-                                {
-                                    lock (PeerSendingLock)
-                                        client.Client.Send(e.Data);
-                                }
-                                catch
-                                {
-                                    client.Close(); 
-                                    lock (PeerSendingLock)
-                                        connection.DestroyChannel(channel.ChannelName);
-                                    return;
-                                }
-                            });
-                            connection.AddHandler((ChannelDeletedEvent e2) =>
-                            {
-                                if (e2.Channel == e.Channel.ChannelName)
-                                {
-                                    client.Close();
-                                }
-                            });
-                            new Thread(() =>
-                            {
-                                try
-                                {
-                                    while (true)
-                                    {
-                                        byte[] buffer = new byte[4096];
-                                        client.Client.Blocking = true;
-                                        int c = client.Client.Receive(buffer);
-                                        if (c == 0)
-                                        {
-                                            continue;
-                                        }
-                                        byte[] bytes = new byte[c];
-                                        Array.Copy(buffer, bytes, c);
-                                        lock (PeerSendingLock)
-                                            channel.Send(bytes);
-                                    }
-                                }
-                                catch
-                                {
-                                    client.Close();
-                                    lock (PeerSendingLock)
-                                        connection.DestroyChannel(channel.ChannelName);
-                                    return;
-                                }
-                            }).Start();
-
-                        }
-                        catch (Exception e)
+                        });
+                        connection.AddHandler((ChannelDeletedEvent e2) =>
                         {
-                            Console.WriteLine(e.ToString());
-                        }
+                            if (e2.Channel == channel.ChannelName)
+                            {
+                                client.Close();
+                                if(IgnoredConnectionId.Contains(e2.Channel.Replace("connection_", string.Empty)))
+                                {
+                                    IgnoredConnectionId.Remove(e2.Channel.Replace("connection_", string.Empty));
+                                }
+                            }
+                        });
+                        CreateClientReceiver(client, channel).Start();
                     }
                     ).Start();
                 }
@@ -169,79 +140,85 @@ namespace BlessingStudio.Wrap.Client
             }
             new Thread(() =>
             {
-                try
+                TcpListener listener = new(new IPAddress(new byte[] { 0, 0, 0, 0 }), Nextport);
+                listener.ExclusiveAddressUse = false;
+                listener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+                Nextport++;
+                listener.Start();
+                while (true)
                 {
-                    TcpListener listener = new(new IPAddress(new byte[] { 0, 0, 0, 0 }), Nextport);
-                    listener.ExclusiveAddressUse = false;
-                    listener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-                    Nextport++;
-                    listener.Start();
-                    while (true)
+                    if (UserManager.Find(token) == null)
                     {
-                        if (UserManager.Find(token) == null)
-                        {
-                            break;
-                        }
-                        TcpClient client = listener.AcceptTcpClient();
-                        string id = new RandomString().Next(8);
-                        IgnoredConnectionId.Add(id);
-                        Channel channel = connection.CreateChannel($"connection_{id}");
-                        channel.AddHandler((ReceivedBytesEvent e) =>
-                        {
-                            try
-                            {
-                                lock (PeerSendingLock)
-                                    client.Client.Send(e.Data);
-                            }
-                            catch
-                            {
-                                client.Close();
-                                lock (PeerSendingLock)
-                                    connection.DestroyChannel(channel.ChannelName);
-                                return;
-                            }
-                        });
-                        Thread.Sleep(500);
-                        new Thread(() =>
-                        {
-                            try
-                            {
-                                while (true)
-                                {
-                                    byte[] buffer = new byte[4096];
-                                    client.Client.Blocking = true;
-                                    int c = client.Client.Receive(buffer);
-                                    if (c == 0)
-                                    {
-                                        continue;
-                                    }
-                                    byte[] bytes = new byte[c];
-                                    Array.Copy(buffer, bytes, c);
-                                    lock (PeerSendingLock)
-                                        channel.Send(bytes);
-                                }
-                            }
-                            catch
-                            {
-                                lock (PeerSendingLock)
-                                    connection.DestroyChannel(channel.ChannelName);
-                                return;
-                            }
-                        }).Start();
+                        break;
                     }
-                    listener.Stop();
+                    TcpClient client = listener.AcceptTcpClient();
+                    string id = new RandomString().Next(8);
+                    IgnoredConnectionId.Add(id);
+                    Channel channel = connection.CreateChannel($"connection_{id}");
+                    channel.AddHandler((ReceivedBytesEvent e) =>
+                    {
+                        try
+                        {
+                            lock (PeerSendingLock)
+                                client.Client.Send(e.Data);
+                        }
+                        catch
+                        {
+                            client.Close();
+                            lock (PeerSendingLock)
+                                connection.DestroyChannel(channel.ChannelName);
+                        }
+                    });
+                    ConnectSuccessfullyPacket? packet = channel.WaitFor<ConnectSuccessfullyPacket>(TimeSpan.FromSeconds(15));
+                    if (packet != null)
+                    {
+                        CreateClientReceiver(client, channel).Start();
+                    }
+                    else
+                    {
+                        client.Close();
+                        lock (PeerSendingLock)
+                            channel.Connection.DestroyChannel(channel.ChannelName);
+                    }
                 }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e.ToString());
-                    return;
-                }
+                listener.Stop();
             }).Start();
         }
         public void RemovePeer(string token)
         {
             UserInfo info = UserManager.Find(token)!;
             info.Connection.Dispose();
+        }
+        private Thread CreateClientReceiver(TcpClient client, Channel channel)
+        {
+            return new Thread(() =>
+            {
+                byte[] buffer = Buffer.Rent(4096);
+                try
+                {
+                    while (true)
+                    {
+                        int c = client.Client.Receive(buffer);
+                        if (c == 0)
+                        {
+                            Thread.Sleep(5);
+                            continue;
+                        }
+                        byte[] bytes = Buffer.Rent(c);
+                        Array.Copy(buffer, bytes, c);
+                        Buffer.Return(bytes);
+                        lock (PeerSendingLock)
+                            channel.Send(bytes);
+                    }
+                }
+                catch
+                {
+                    Buffer.Return(buffer);
+                    client.Close();
+                    lock (PeerSendingLock)
+                        channel.Connection.DestroyChannel(channel.ChannelName);
+                }
+            });
         }
     }
 }
