@@ -1,18 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace BlessingStudio.Wrap.Extensions;
 
-namespace BlessingStudio.Wrap.Extensions
-{
-    public static class RandomExtensions
-    {
-        public static T Choose<T>(this IList<T> list)
-        {
-            int len = list.Count;
-            int i = new Random().Next(0, len);
-            return list[i];
-        }
+public static class RandomExtensions {
+    private static readonly Random _random = Random.Shared;
+
+    public static T Choose<T>(this IList<T> list) {
+        int index = _random.Next(0, list.Count);
+        return list[index];
     }
 }
