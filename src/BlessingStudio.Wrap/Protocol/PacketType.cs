@@ -1,42 +1,33 @@
 ﻿using BlessingStudio.Wrap.Protocol.Packet;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace BlessingStudio.Wrap.Protocol
-{
-    public enum PacketType
-    {
-        Login,
-        LoginSuccessful,
-        LoginFailed,
-        PluginMessage,
-        Disconnect,
-        KeepAlive,
-        ConnectRequest,
-        ConnectAccept,
-        IPInfo,
-        ConnectSuccessfully,
-        ConnectRequestInvalidated
-    }
-    public partial interface IPacket
-    {
-        public static Dictionary<PacketType, Type> Packets { get; set; } = new Dictionary<PacketType, Type>();
-        static IPacket()
-        {
-            Packets[PacketType.Login] = typeof(LoginPacket);
-            Packets[PacketType.LoginSuccessful] = typeof(LoginSuccessfulPacket);
-            Packets[PacketType.LoginFailed] = typeof(LoginFailedPacket);
-            Packets[PacketType.PluginMessage] = typeof(PluginMessagePacket);
-            Packets[PacketType.Disconnect] = typeof(DisconnectPacket);
-            Packets[PacketType.KeepAlive] = typeof(KeepAlivePacket);
-            Packets[PacketType.ConnectRequest] = typeof(ConnectRequestPacket);
-            Packets[PacketType.ConnectAccept] = typeof(ConnectAcceptPacket);
-            Packets[PacketType.IPInfo] = typeof(IPInfoPacket);
-            Packets[PacketType.ConnectSuccessfully] = typeof(ConnectSuccessfullyPacket);
-            Packets[PacketType.ConnectRequestInvalidated] = typeof(ConnectRequestInvalidatedPacket);
-        }
-    }
+namespace BlessingStudio.Wrap.Protocol;
+
+public enum PacketType {
+    Login,
+    LoginSuccessful,
+    LoginFailed,
+    PluginMessage,
+    Disconnect,
+    KeepAlive,
+    ConnectRequest,
+    ConnectAccept,
+    IPInfo,
+    ConnectSuccessfully,
+    ConnectRequestInvalidated
+}
+
+public partial interface IPacket {
+    public static IReadOnlyDictionary<PacketType, Type> Packets { get; } = new Dictionary<PacketType, Type> {
+        [PacketType.Login] = typeof(LoginPacket),
+        [PacketType.LoginSuccessful] = typeof(LoginSuccessfulPacket),
+        [PacketType.LoginFailed] = typeof(LoginFailedPacket),
+        [PacketType.PluginMessage] = typeof(PluginMessagePacket),
+        [PacketType.Disconnect] = typeof(DisconnectPacket),
+        [PacketType.KeepAlive] = typeof(KeepAlivePacket),
+        [PacketType.ConnectRequest] = typeof(ConnectRequestPacket),
+        [PacketType.ConnectAccept] = typeof(ConnectAcceptPacket),
+        [PacketType.IPInfo] = typeof(IPInfoPacket),
+        [PacketType.ConnectSuccessfully] = typeof(ConnectSuccessfullyPacket),
+        [PacketType.ConnectRequestInvalidated] = typeof(ConnectRequestInvalidatedPacket)
+    };
 }

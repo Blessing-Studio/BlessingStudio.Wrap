@@ -1,20 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace BlessingStudio.Wrap.Protocol;
 
-namespace BlessingStudio.Wrap.Protocol
-{
-    public enum ValueType
-    {
-        String,
-        Int32,
-        VatInt,
-        Int64,
-        Int16,
-        Byte,
-        ByteArray,
-        Bool
-    }
+public enum ValueType {
+    Bool,
+    Byte,
+    Int32,
+    Int64,
+    Int16,
+    VatInt,
+    String,
+    ByteArray,
 }
