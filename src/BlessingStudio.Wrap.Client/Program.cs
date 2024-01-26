@@ -8,6 +8,7 @@ namespace BlessingStudio.Wrap.Client
     {
         static void Main(string[] args)
         {
+            AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(CurrentDomain_UnhandledException);
             Console.WriteLine("NAT类型");
             Console.WriteLine(StunUtils.GetNatType());
             WrapClient wrapClient = new WrapClient();
@@ -19,6 +20,10 @@ namespace BlessingStudio.Wrap.Client
                 wrapClient.MakeRequest(token);
             });
             wrapClient.Start();
+        }
+        static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            Console.WriteLine(e.ExceptionObject.ToString());
         }
     }
 }

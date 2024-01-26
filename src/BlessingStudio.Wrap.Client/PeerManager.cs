@@ -1,5 +1,6 @@
 ﻿using BlessingStudio.WonderNetwork;
 using BlessingStudio.WonderNetwork.Events;
+using BlessingStudio.WonderNetwork.Interfaces;
 using BlessingStudio.Wrap.Protocol.Packet;
 using BlessingStudio.Wrap.Utils;
 using System;
@@ -26,7 +27,6 @@ namespace BlessingStudio.Wrap.Client
         public IPEndPoint Server = new(new IPAddress(new byte[] { 127, 0, 0, 1 }), 25565);
         public List<string> IgnoredConnectionId { get; } = new();
         public ArrayPool<byte> Buffer { get; } = ArrayPool<byte>.Create();
-        public object PeerSendingLock { get; } = new();
         public PeerManager()
         {
             KeepAliveThread = new((e) =>
@@ -61,8 +61,8 @@ namespace BlessingStudio.Wrap.Client
                 {
                     while (true)
                     {
-                        lock (PeerSendingLock)
-                            connection.GetChannel("main").Send(new KeepAlivePacket());
+                        connection.GetChannel("main").Send(new KeepAlivePacket());
+                        Thread.Sleep(500);
                     }
                 }
                 catch { }
@@ -78,34 +78,30 @@ namespace BlessingStudio.Wrap.Client
                         try
                         {
                             client.Connect(Server);
+                            Thread.Sleep(200);
                             channel.Send(new ConnectSuccessfullyPacket());
                         }
                         catch
                         {
-                            client.Close();
-                            lock (PeerSendingLock)
-                                connection.DestroyChannel(channel.ChannelName);
+                            TryCloseConnection(connection, client, channel.ChannelName);
                         }
                         channel.AddHandler((ReceivedBytesEvent e) =>
                         {
                             try
                             {
-                                lock (PeerSendingLock)
-                                    client.Client.Send(e.Data);
+                                client.Client.Send(e.Data);
                             }
                             catch
                             {
-                                client.Close();
-                                lock (PeerSendingLock)
-                                    connection.DestroyChannel(channel.ChannelName);
+                                TryCloseConnection(connection, client, channel.ChannelName);
                             }
                         });
                         connection.AddHandler((ChannelDeletedEvent e2) =>
                         {
                             if (e2.Channel == channel.ChannelName)
                             {
-                                client.Close();
-                                if(IgnoredConnectionId.Contains(e2.Channel.Replace("connection_", string.Empty)))
+                                TryCloseConnection(connection, client, e2.Channel);
+                                if (IgnoredConnectionId.Contains(e2.Channel.Replace("connection_", string.Empty)))
                                 {
                                     IgnoredConnectionId.Remove(e2.Channel.Replace("connection_", string.Empty));
                                 }
@@ -154,31 +150,35 @@ namespace BlessingStudio.Wrap.Client
                     TcpClient client = listener.AcceptTcpClient();
                     string id = new RandomString().Next(8);
                     IgnoredConnectionId.Add(id);
-                    Channel channel = connection.CreateChannel($"connection_{id}");
-                    channel.AddHandler((ReceivedBytesEvent e) =>
+                    try
                     {
-                        try
+                        Channel channel = connection.CreateChannel($"connection_{id}");
+
+                        channel.AddHandler((ReceivedBytesEvent e) =>
                         {
-                            lock (PeerSendingLock)
+                            try
+                            {
                                 client.Client.Send(e.Data);
-                        }
-                        catch
+                            }
+                            catch
+                            {
+                                TryCloseConnection(connection, client, channel.ChannelName);
+                            }
+                        });
+                        ConnectSuccessfullyPacket? packet = channel.WaitFor<ConnectSuccessfullyPacket>(TimeSpan.FromSeconds(5));
+                        Thread.Sleep(500);
+                        if (packet != null)
                         {
-                            client.Close();
-                            lock (PeerSendingLock)
-                                connection.DestroyChannel(channel.ChannelName);
+                            CreateClientReceiver(client, channel).Start();
                         }
-                    });
-                    ConnectSuccessfullyPacket? packet = channel.WaitFor<ConnectSuccessfullyPacket>(TimeSpan.FromSeconds(15));
-                    if (packet != null)
-                    {
-                        CreateClientReceiver(client, channel).Start();
+                        else
+                        {
+                            TryCloseConnection(connection, client, channel.ChannelName);
+                        }
                     }
-                    else
+                    catch
                     {
-                        client.Close();
-                        lock (PeerSendingLock)
-                            channel.Connection.DestroyChannel(channel.ChannelName);
+                        TryCloseConnection(connection, client, $"connection_{id}");
                     }
                 }
                 listener.Stop();
@@ -201,24 +201,33 @@ namespace BlessingStudio.Wrap.Client
                         int c = client.Client.Receive(buffer);
                         if (c == 0)
                         {
-                            Thread.Sleep(5);
+                            Thread.Sleep(1);
                             continue;
                         }
-                        byte[] bytes = Buffer.Rent(c);
+                        byte[] bytes = new byte[c];
                         Array.Copy(buffer, bytes, c);
-                        Buffer.Return(bytes);
-                        lock (PeerSendingLock)
-                            channel.Send(bytes);
+                        channel.Send(bytes);
                     }
                 }
                 catch
                 {
                     Buffer.Return(buffer);
-                    client.Close();
-                    lock (PeerSendingLock)
-                        channel.Connection.DestroyChannel(channel.ChannelName);
+                    TryCloseConnection(channel.Connection, client, channel.ChannelName);
                 }
             });
+        }
+        private void TryCloseConnection(IConnection connection, TcpClient client, string channelName)
+        {
+            try
+            {
+                client.Close();
+            }
+            catch { }
+            try
+            {
+                connection.DestroyChannel(channelName);
+            }
+            catch { }
         }
     }
 }
