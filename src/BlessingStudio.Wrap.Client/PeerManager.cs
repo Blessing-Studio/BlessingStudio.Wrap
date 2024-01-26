@@ -17,16 +17,17 @@ using Channel = BlessingStudio.WonderNetwork.Channel;
 
 namespace BlessingStudio.Wrap.Client
 {
-    public class PeerManager
+    public class PeerManager : IDisposable
     {
         public UserManager UserManager { get; set; } = new();
-        public Dictionary<string, long> KeepAliveData { get; } = new Dictionary<string, long>();
+        public Dictionary<string, DateTimeOffset> KeepAliveData { get; } = new();
         public Thread KeepAliveThread { get; }
         public CancellationTokenSource KeepAliveThreadCancellationTokenSource { get; } = new();
         public ushort Nextport { get; set; } = 42000;
         public IPEndPoint Server = new(new IPAddress(new byte[] { 127, 0, 0, 1 }), 25565);
         public List<string> IgnoredConnectionId { get; } = new();
         public ArrayPool<byte> Buffer { get; } = ArrayPool<byte>.Create();
+        public bool IsDisposed { get; private set; } = false;
         public PeerManager()
         {
             KeepAliveThread = new((e) =>
@@ -40,11 +41,11 @@ namespace BlessingStudio.Wrap.Client
                     {
                         foreach (var pair in KeepAliveData)
                         {
-                            if (DateTimeOffset.Now.ToUnixTimeSeconds() - pair.Value > 30)
+                            if ((DateTimeOffset.Now - pair.Value).Seconds > 30)
                             {
                                 UserInfo info = UserManager.Find(pair.Key)!;
-                                //info.Connection.Send("main", new DisconnectPacket() { Reason = "You didn't send KeepAlivePacket in 30s"});
-                                //info.Connection.Dispose();
+                                info.Connection.Send("main", new DisconnectPacket() { Reason = "You didn't send KeepAlivePacket in 30s"});
+                                info.Connection.Dispose();
                             }
                         }
                     }
@@ -52,8 +53,13 @@ namespace BlessingStudio.Wrap.Client
             });
             KeepAliveThread.Start(KeepAliveThreadCancellationTokenSource.Token);
         }
+        ~PeerManager()
+        {
+            Close();
+        }
         public void AddPeer(string token, Connection connection, IPEndPoint ip)
         {
+            CheckDisposed();
             UserManager.AddNewUser(connection, token, ip);
             new Thread(() =>
             {
@@ -112,6 +118,10 @@ namespace BlessingStudio.Wrap.Client
                     ).Start();
                 }
             });
+            lock (KeepAliveData)
+            {
+                KeepAliveData[token] = DateTimeOffset.Now;
+            }
             connection.AddHandler((DisposedEvent e) =>
             {
                 lock (KeepAliveData)
@@ -125,15 +135,10 @@ namespace BlessingStudio.Wrap.Client
                 {
                     lock (KeepAliveData)
                     {
-                        KeepAliveData[token] = DateTimeOffset.Now.ToUnixTimeSeconds();
+                        KeepAliveData[token] = DateTimeOffset.Now;
                     }
-                    Debug.WriteLine(token + " Keepalived");
                 }
             });
-            lock (KeepAliveData)
-            {
-                KeepAliveData[token] = DateTimeOffset.Now.ToUnixTimeSeconds();
-            }
             new Thread(() =>
             {
                 TcpListener listener = new(new IPAddress(new byte[] { 0, 0, 0, 0 }), Nextport);
@@ -186,11 +191,13 @@ namespace BlessingStudio.Wrap.Client
         }
         public void RemovePeer(string token)
         {
+            CheckDisposed();
             UserInfo info = UserManager.Find(token)!;
             info.Connection.Dispose();
         }
         private Thread CreateClientReceiver(TcpClient client, Channel channel)
         {
+            CheckDisposed();
             return new Thread(() =>
             {
                 byte[] buffer = Buffer.Rent(4096);
@@ -228,6 +235,26 @@ namespace BlessingStudio.Wrap.Client
                 connection.DestroyChannel(channelName);
             }
             catch { }
+        }
+        public void Close()
+        {
+            if (!IsDisposed)
+            {
+                KeepAliveThreadCancellationTokenSource.Cancel();
+                UserManager.Dispose();
+                IsDisposed = true;
+            }
+        }
+        public void Dispose()
+        {
+            Close();
+        }
+        private void CheckDisposed()
+        {
+            if (IsDisposed)
+            {
+                throw new ObjectDisposedException(GetType().FullName);
+            }
         }
     }
 }
