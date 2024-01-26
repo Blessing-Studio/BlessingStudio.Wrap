@@ -18,31 +18,67 @@ namespace BlessingStudio.Wrap.Server.Managers
                 return requestInfos.AsReadOnly();
             } 
         }
+        public RequestManager()
+        {
+            new Thread(() =>
+            {
+                while (true)
+                {
+                    lock (requestInfos)
+                    {
+                        List<RequestInfo> toRemove = new();
+                        foreach (RequestInfo info in requestInfos)
+                        {
+                            if((DateTimeOffset.Now - info.DateTime).Seconds > 60)
+                            {
+                                toRemove.Add(info);
+                            }
+                        }
+                        foreach (RequestInfo info in toRemove)
+                        {
+                            RemoveRequest(info);
+                        }
+                    }
+                }
+            }).Start();
+        }
         public void AddRequest(RequestInfo requestInfo)
         {
-            Remove(requestInfo.Requester, requestInfo.Receiver);
-            requestInfos.Add(requestInfo);
-            requestInfo.Receiver.Connection.Send("main", new ConnectRequestPacket() { UserToken = requestInfo.Requester.UserToken});
+            lock (requestInfos)
+            {
+                Remove(requestInfo.Requester, requestInfo.Receiver);
+                requestInfos.Add(requestInfo);
+                requestInfo.Receiver.Connection.Send("main", new ConnectRequestPacket() { UserToken = requestInfo.Requester.UserToken });
+            }
         }
         public void RemoveRequest(RequestInfo requestInfo)
         {
-            requestInfos.Remove(requestInfo);
+            lock (requestInfos)
+            {
+                requestInfos.Remove(requestInfo);
+                requestInfo.Requester.Connection.Send("main", new ConnectRequestInvalidatedPacket() { UserToken = requestInfo.Receiver.UserToken });
+                requestInfo.Receiver.Connection.Send("main", new ConnectRequestInvalidatedPacket() { UserToken = requestInfo.Requester.UserToken });
+            }
         }
         public void Clear()
         {
-            requestInfos.Clear();
+            lock (requestInfos)
+                requestInfos.Clear();
         }
         public void RemoveAll(UserInfo userInfo)
         {
-            requestInfos.RemoveAll(x => x.Receiver == userInfo || x.Requester == userInfo);
+            lock(requestInfos)
+                requestInfos.RemoveAll(x => x.Receiver == userInfo || x.Requester == userInfo);
         }
         public void Remove(UserInfo requester, UserInfo receiver)
         {
-            requestInfos.RemoveAll(x => x.Requester == requester && x.Receiver == receiver);
+            lock (requestInfos)
+                requestInfos.RemoveAll(x => x.Requester == requester && x.Receiver == receiver);
         }
         public RequestInfo? Find(UserInfo requester, UserInfo receiver)
         {
-            return requestInfos.FirstOrDefault((x) => x.Requester == requester && x.Receiver == receiver);
+            lock (requestInfos)
+                return requestInfos.FirstOrDefault((x) => x.Requester == requester && x.Receiver == receiver);
         }
 
         public IEnumerator<RequestInfo> GetEnumerator()

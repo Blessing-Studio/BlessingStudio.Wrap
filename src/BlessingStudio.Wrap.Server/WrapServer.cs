@@ -1,4 +1,5 @@
 ﻿using BlessingStudio.WonderNetwork;
+using BlessingStudio.WonderNetwork.Events;
 using BlessingStudio.WonderNetwork.Interfaces;
 using BlessingStudio.Wrap.Protocol;
 using BlessingStudio.Wrap.Protocol.Packet;
@@ -17,15 +18,40 @@ namespace BlessingStudio.Wrap.Server
     public class WrapServer
     {
         public TcpListener Listener;
-        public UserManager Users { get; private set; } = new();
+        public UserManager UserManager { get; private set; } = new();
         public RequestManager Requests { get; private set; } = new();
         public Dictionary<IConnection, bool> Logined { get; private set; } = new();
+        public CancellationTokenSource KeepAliveThreadCancellationTokenSource { get; } = new();
+        public Dictionary<string, DateTimeOffset> KeepAliveData { get; } = new();
+        public Thread KeepAliveThread { get; }
         public WrapServer(int port = ConstValue.ServerPort)
         {
             Listener = new(new IPAddress(new byte[4]), port);
+            KeepAliveThread = new((e) =>
+            {
+                CancellationToken cancellationToken = (CancellationToken)e!;
+                while (true)
+                {
+                    if (cancellationToken.IsCancellationRequested) return;
+                    Thread.Sleep(500);
+                    lock (KeepAliveData)
+                    {
+                        foreach (var pair in KeepAliveData)
+                        {
+                            if ((DateTimeOffset.Now - pair.Value).Seconds > 30)
+                            {
+                                UserInfo info = UserManager.Find(pair.Key)!;
+                                info.Connection.Send("main", new DisconnectPacket() { Reason = "You didn't send KeepAlivePacket in 30s" });
+                                info.Connection.Dispose();
+                            }
+                        }
+                    }
+                }
+            });
         }
         public void Start()
-        {
+        {            
+            KeepAliveThread.Start(KeepAliveThreadCancellationTokenSource.Token);
             Listener.Start();
             while (true)
             {
@@ -44,7 +70,7 @@ namespace BlessingStudio.Wrap.Server
                             {
                                 Logined[e.Connection] = true;
                                 bool customTokenAvaliable = loginPacket.UseCustomToken;
-                                foreach(UserInfo userInfo in Users)
+                                foreach(UserInfo userInfo in UserManager)
                                 {
                                     if(userInfo.UserToken == loginPacket.UserToken)
                                     {
@@ -60,11 +86,11 @@ namespace BlessingStudio.Wrap.Server
                                 {
                                     loginSuccessfulPacket.UserToken = loginPacket.UserToken;
                                 }
-                                IPEndPoint ip = (IPEndPoint)client.Client.RemoteEndPoint;
+                                IPEndPoint ip = (IPEndPoint)client.Client.RemoteEndPoint!;
                                 loginSuccessfulPacket.IPAddress = ip.Address.GetAddressBytes();
                                 loginSuccessfulPacket.port = ip.Port;
                                 e.Channel.Send(loginSuccessfulPacket);
-                                Users.AddNewUser(connection, loginSuccessfulPacket.UserToken, ip);
+                                UserManager.AddNewUser(connection, loginSuccessfulPacket.UserToken, ip);
                                 Console.WriteLine("new user " + loginSuccessfulPacket.UserToken);
                             }
                             else
@@ -81,19 +107,30 @@ namespace BlessingStudio.Wrap.Server
                     mainChannel.AddHandler((e) =>
                     {
                         if (!Logined[e.Connection]) return;
-                        UserInfo user = Users.Find(e.Connection)!;
-                        if(e.Object is ConnectRequestPacket requestPacket)
+                        UserInfo user = UserManager.Find(e.Connection)!;
+                        if (e.Object is KeepAlivePacket keepAlivePacket)
                         {
-                            UserInfo? userInfo = Users.Find(requestPacket.UserToken);
+                            lock (KeepAliveData)
+                            {
+                                KeepAliveData[user.UserToken] = DateTimeOffset.Now;
+                            }
+                        }
+                        else if (e.Object is ConnectRequestPacket requestPacket)
+                        {
+                            UserInfo? userInfo = UserManager.Find(requestPacket.UserToken);
                             if(userInfo != null)
                             {
-                                UserInfo sender = Users.Find(e.Connection)!;
+                                UserInfo sender = UserManager.Find(e.Connection)!;
                                 Requests.AddRequest(new(sender, userInfo));
+                            }
+                            else
+                            {
+                                mainChannel.Send(new ConnectRequestInvalidatedPacket() { UserToken = requestPacket.UserToken });
                             }
                         }
                         else if(e.Object is ConnectAcceptPacket acceptPacket)
                         {
-                            UserInfo? requester = Users.Find(acceptPacket.UserToken);
+                            UserInfo? requester = UserManager.Find(acceptPacket.UserToken);
                             if (requester != null)
                             {
                                 RequestInfo? requestInfo = Requests.Find(requester, user);
@@ -121,12 +158,20 @@ namespace BlessingStudio.Wrap.Server
                             }
                         }
                     });
+                    connection.AddHandler((DisposedEvent e) =>
+                    {
+                        UserInfo user = UserManager.Find(e.Connection)!;
+                        lock (KeepAliveData)
+                        {
+                            KeepAliveData.Remove(user.UserToken);
+                        }
+                    });
                     connection.Serializers[typeof(IPacket)] = new PacketSerializer();
                     connection.Start();
                 }
                 catch (Exception ex)
                 {
-
+                    Console.WriteLine(ex.ToString());
                 }
             }
         }

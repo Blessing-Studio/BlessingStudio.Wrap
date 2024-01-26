@@ -25,13 +25,15 @@ namespace BlessingStudio.Wrap.Client
         public string UserToken { get; private set; } = string.Empty;
         public string DisconnectReason { get; private set; } = string.Empty;
         public PeerManager PeerManager { get; private set; } = new PeerManager();
-        public IPEndPoint RemoteIP { get; private set; }
+        public IPEndPoint? RemoteIP { get; private set; }
+        public bool IsDisposed { get; private set; } = false;
         public WrapClient()
         {
             Client = new();
         }
         public void Connect(IPAddress address, int port = ConstValue.ServerPort)
         {
+            CheckDisposed();
             Close();
             Client.Connect(address, port);
             NetworkStream networkStream = Client.GetStream();
@@ -41,14 +43,19 @@ namespace BlessingStudio.Wrap.Client
         }
         public void Close()
         {
-            if (IsConnected)
+            if (!IsDisposed)
             {
-                Client.Close();
-                Client = new();
-                Client.ExclusiveAddressUse = false;
-                Client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-                ServerConnection!.Dispose();
-                MainChannel = null;
+                if (IsConnected)
+                {
+                    Client.Close();
+                    Client = new();
+                    Client.ExclusiveAddressUse = false;
+                    Client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+                    ServerConnection!.Dispose();
+                    MainChannel = null;
+                }
+                PeerManager.Dispose();
+                IsDisposed = true;
             }
         }
         public void Dispose()
@@ -57,6 +64,7 @@ namespace BlessingStudio.Wrap.Client
         }
         public void Start(string userToken = "_")
         {
+            CheckDisposed();
             if (ServerConnection == null)
             {
                 throw new InvalidOperationException();
@@ -91,8 +99,6 @@ namespace BlessingStudio.Wrap.Client
                         {
                             UserToken = connectRequestPacket.UserToken,
                         });
-                        Console.WriteLine(RemoteIP
-                            .ToString());
                         IPInfoPacket infoPacket = ServerConnection.WaitFor<IPInfoPacket>("main", TimeSpan.FromSeconds(60))!;
                         IPEndPoint peerIP = new IPEndPoint(new IPAddress(infoPacket.IPAddress), infoPacket.port);
                         TryConnect(peerIP, infoPacket.UserToken);
@@ -100,8 +106,6 @@ namespace BlessingStudio.Wrap.Client
                     if (e.Object is ConnectAcceptPacket connectAcceptPacket)
                     {
                         //Begin connect
-                        Console.WriteLine(RemoteIP
-                            .ToString());
                         IPInfoPacket infoPacket = ServerConnection.WaitFor<IPInfoPacket>("main", TimeSpan.FromSeconds(60))!;
                         IPEndPoint peerIP = new IPEndPoint(new IPAddress(infoPacket.IPAddress), infoPacket.port);
                         TryConnect(peerIP, connectAcceptPacket.UserToken);
@@ -118,11 +122,12 @@ namespace BlessingStudio.Wrap.Client
             while (true)
             {
                 Thread.Sleep(5000);
-                //MainChannel.Send(new KeepAlivePacket());
+                MainChannel.Send(new KeepAlivePacket());
             }
         }
         public void MakeRequest(string userToken)
         {
+            CheckDisposed();
             if (IsConnected)
             {
                 MainChannel!.Send(new ConnectRequestPacket()
@@ -133,10 +138,11 @@ namespace BlessingStudio.Wrap.Client
         }
         private void TryConnect(IPEndPoint peerIP, string token)
         {
+            CheckDisposed();
             TcpClient client = new TcpClient();
             client.ExclusiveAddressUse = false;
             client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-            client.Client.Bind(Client.Client.LocalEndPoint);
+            client.Client.Bind(Client.Client.LocalEndPoint!);
             bool successed = false;
             TcpClient? connectionToPeer = null;
             Task task1 = Task.Run(() =>
@@ -173,7 +179,7 @@ namespace BlessingStudio.Wrap.Client
                 Connection connection = new(new SafeNetworkStream(networkStream));
                 connection.Serializers[typeof(IPacket)] = new PacketSerializer();
                 Channel channel = connection.CreateChannel("main");
-                PeerManager.AddPeer(token, connection, (IPEndPoint)client.Client.RemoteEndPoint);
+                PeerManager.AddPeer(token, connection, (IPEndPoint)client.Client.RemoteEndPoint!);
                 connection.AddHandler((ReceivedObjectEvent e) =>
                 {
                     if(e.Object is DisconnectPacket packet)
@@ -182,6 +188,13 @@ namespace BlessingStudio.Wrap.Client
                     }
                 });
                 connection.Start();
+            }
+        }
+        private void CheckDisposed()
+        {
+            if (IsDisposed)
+            {
+                throw new ObjectDisposedException(GetType().FullName);
             }
         }
     }

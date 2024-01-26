@@ -1,4 +1,5 @@
 ﻿using BlessingStudio.WonderNetwork;
+using BlessingStudio.WonderNetwork.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,7 +12,7 @@ namespace BlessingStudio.Wrap
     public class UserInfo
     {
         public string UserToken { get; set; } = "";
-        public Connection Connection { get; set; }
+        public IConnection Connection { get; set; }
         public IPEndPoint IP {  get; set; }
         public override bool Equals(object? obj)
         {
