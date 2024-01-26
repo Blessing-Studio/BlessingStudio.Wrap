@@ -1,41 +1,24 @@
-﻿using BlessingStudio.WonderNetwork;
+﻿using System.Net;
 using BlessingStudio.WonderNetwork.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace BlessingStudio.Wrap
-{
-    public class UserInfo
-    {
-        public string UserToken { get; set; } = "";
-        public IConnection Connection { get; set; }
-        public IPEndPoint IP {  get; set; }
-        public override bool Equals(object? obj)
-        {
-            if (obj is UserInfo info)
-            {
-                return info.UserToken == UserToken;
-            }
-            return false;
-        }
+namespace BlessingStudio.Wrap;
 
-        public override int GetHashCode()
-        {
-            return UserToken.GetHashCode();
-        }
-        public static bool operator ==(UserInfo? left, UserInfo? right)
-        {
-            if (left is null && right is null) return true;
-            if (left is null || right is null) return false;
-            return left.UserToken == right.UserToken;
-        }
-        public static bool operator !=(UserInfo? left, UserInfo? right)
-        {
-            return !(left == right);
-        }
+public sealed class UserInfo {
+    public IPEndPoint IP { get; set; }
+
+    public string UserToken { get; init; }
+
+    public IConnection Connection { get; set; }
+
+    public override bool Equals(object? obj) {
+        return obj is UserInfo info && info.UserToken == UserToken;
     }
+
+    public override int GetHashCode() {
+        return UserToken.GetHashCode();
+    }
+
+    public static bool operator !=(UserInfo? left, UserInfo? right) => !(left == right);
+
+    public static bool operator ==(UserInfo? left, UserInfo? right) => Equals(left, right);
 }
