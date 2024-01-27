@@ -7,7 +7,7 @@ public sealed class PluginMessagePacket : IPacket {
     public string MessageName = "";
 
     [Field(1, ValueType.ByteArray)]
-    public byte[] Data = [];
+    public byte[] Data = new byte[0];
 
     public PacketType GetPacketType() => PacketType.PluginMessage;
 }

@@ -24,12 +24,13 @@ namespace BlessingStudio.Wrap.Server.Managers
             {
                 while (true)
                 {
+                    Thread.Sleep(1000);
                     lock (requestInfos)
                     {
                         List<RequestInfo> toRemove = new();
                         foreach (RequestInfo info in requestInfos)
                         {
-                            if((DateTimeOffset.Now - info.DateTime).Seconds > 60)
+                            if((DateTimeOffset.Now - info.DateTime).TotalSeconds > 60)
                             {
                                 toRemove.Add(info);
                             }

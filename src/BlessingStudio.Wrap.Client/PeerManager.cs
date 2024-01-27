@@ -36,12 +36,12 @@ namespace BlessingStudio.Wrap.Client
                 while (true)
                 {
                     if (cancellationToken.IsCancellationRequested) return;
-                    Thread.Sleep(500);
+                    Thread.Sleep(1000);
                     lock (KeepAliveData)
                     {
                         foreach (var pair in KeepAliveData)
                         {
-                            if ((DateTimeOffset.Now - pair.Value).Seconds > 30)
+                            if ((DateTimeOffset.Now - pair.Value).TotalSeconds > 30)
                             {
                                 UserInfo info = UserManager.Find(pair.Key)!;
                                 info.Connection.Send("main", new DisconnectPacket() { Reason = "You didn't send KeepAlivePacket in 30s"});
