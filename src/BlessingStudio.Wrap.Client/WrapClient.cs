@@ -34,7 +34,6 @@ namespace BlessingStudio.Wrap.Client
         public void Connect(IPAddress address, int port = ConstValue.ServerPort)
         {
             CheckDisposed();
-            Close();
             Client.Connect(address, port);
             NetworkStream networkStream = Client.GetStream();
             networkStream.Socket.NoDelay = true;
@@ -48,9 +47,6 @@ namespace BlessingStudio.Wrap.Client
                 if (IsConnected)
                 {
                     Client.Close();
-                    Client = new();
-                    Client.ExclusiveAddressUse = false;
-                    Client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
                     ServerConnection!.Dispose();
                     MainChannel = null;
                 }
