@@ -1,4 +1,5 @@
 ﻿using BlessingStudio.WonderNetwork;
+using BlessingStudio.WonderNetwork.Events;
 using BlessingStudio.WonderNetwork.Interfaces;
 using System.Collections;
 using System.Collections.ObjectModel;
@@ -33,10 +34,10 @@ public class UserManager : IEnumerable<UserInfo>, IDisposable
                 UserToken = userToken,
                 IP = ip
             });
-            connection.Disposed += e =>
+            connection.AddHandler((DisposedEvent _) =>
             {
                 RemoveUser(userToken);
-            };
+            });
         }
     }
     public void RemoveUser(Connection connection)

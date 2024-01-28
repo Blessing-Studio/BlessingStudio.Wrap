@@ -29,6 +29,11 @@ public class WrapClient : IDisposable
     public bool IsDisposed { get; private set; } = false;
     public event WonderNetwork.Events.EventHandler<NewRequestEvent>? NewRequest;
     public event WonderNetwork.Events.EventHandler<RequestInvalidatedEvent>? RequestInvalidated;
+    public event WonderNetwork.Events.EventHandler<ConnectPeerFailedEvent>? ConnectFailed;
+    public event WonderNetwork.Events.EventHandler<ConnectPeerSuccessfullyEvent>? ConnectPeerSuccessfully;
+    public event WonderNetwork.Events.EventHandler<ExpectedDisconnectEvent>? ExpectedDisconnect;
+    public event WonderNetwork.Events.EventHandler<UnexpectedDisconnectEvent>? UnexpectedDisconnect;
+    public event WonderNetwork.Events.EventHandler<LoginedSuccessfullyEvent>? LoginedSuccessfully;
     public List<RequestInfo> Requests { get; private set; } = new();
     public WrapClient()
     {
@@ -81,9 +86,8 @@ public class WrapClient : IDisposable
             if (e.Object is LoginSuccessfulPacket loginSuccessfulPacket)
             {
                 UserToken = loginSuccessfulPacket.UserToken;
-                Console.WriteLine(UserToken);
-                IPEndPoint iPEndPoint = new(new IPAddress(loginSuccessfulPacket.IPAddress), loginSuccessfulPacket.port);
-                RemoteIP = iPEndPoint;
+                RemoteIP = new(new IPAddress(loginSuccessfulPacket.IPAddress), loginSuccessfulPacket.port);
+                LoginedSuccessfully?.Invoke(new(loginSuccessfulPacket.UserToken));
             }
             else if (e.Object is LoginFailedPacket loginFailedPacket)
             {
@@ -129,7 +133,10 @@ public class WrapClient : IDisposable
         while (true)
         {
             Thread.Sleep(5000);
-            MainChannel.Send(new KeepAlivePacket());
+            if (!ServerConnection.IsDisposed)
+            {
+                MainChannel.Send(new KeepAlivePacket());
+            }
         }
     }
     public void MakeRequest(string userToken)
@@ -184,10 +191,7 @@ public class WrapClient : IDisposable
                     successed = true;
                     connectionToPeer = client;
                 }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e.ToString());
-                }
+                catch { }
                 if (successed)
                 {
                     break;
@@ -228,26 +232,35 @@ public class WrapClient : IDisposable
         listener?.Stop();
         if (connectionToPeer == null)
         {
-            Console.WriteLine("Failed!");
+            ConnectFailed?.Invoke(new(token));
+            return;
         }
-        else
+        NetworkStream networkStream = connectionToPeer.GetStream();
+        Connection connection = new(new SafeNetworkStream(networkStream));
+        connection.Serializers[typeof(IPacket)] = new PacketSerializer();
+        Channel channel = connection.CreateChannel("main");
+        PeerManager.AddPeer(token, connection, (IPEndPoint)client.Client.RemoteEndPoint!);
+
+        bool IsExpectedDisconnect = false;
+        channel.AddHandler((ReceivedObjectEvent e) =>
         {
-            Console.WriteLine($"Connected! {token}");
-            connectionToPeer.Client.Blocking = true;
-            NetworkStream networkStream = connectionToPeer.GetStream();
-            Connection connection = new(new SafeNetworkStream(networkStream));
-            connection.Serializers[typeof(IPacket)] = new PacketSerializer();
-            Channel channel = connection.CreateChannel("main");
-            PeerManager.AddPeer(token, connection, (IPEndPoint)client.Client.RemoteEndPoint!);
-            connection.AddHandler((ReceivedObjectEvent e) =>
+            if (e.Object is DisconnectPacket packet)
             {
-                if (e.Object is DisconnectPacket packet)
-                {
-                    Console.WriteLine(packet.Reason);
-                }
-            });
-            connection.Start();
-        }
+                IsExpectedDisconnect = true;
+                ExpectedDisconnect?.Invoke(new(token, packet.Reason));
+                connection.Dispose();
+            }
+        });
+        connection.AddHandler((DisposedEvent _) =>
+        {
+            if (!IsExpectedDisconnect)
+            {
+                UnexpectedDisconnect?.Invoke(new(token));
+            }
+        });
+
+        connection.Start();
+        ConnectPeerSuccessfully?.Invoke(new(token, connection));
     }
 
     private void CheckDisposed()
