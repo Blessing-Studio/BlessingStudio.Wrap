@@ -10,12 +10,12 @@ using System.Reflection.Metadata;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BlessingStudio.Wrap
+namespace BlessingStudio.Wrap.Managers
 {
     public class UserManager : IEnumerable<UserInfo>, IDisposable
     {
-        private List<UserInfo> users = new List<UserInfo>();
-        public bool IsDisposed {  get; private set; } = false;
+        private readonly List<UserInfo> users = new();
+        public bool IsDisposed { get; private set; } = false;
         public ReadOnlyCollection<UserInfo> Users
         {
             get
@@ -109,6 +109,7 @@ namespace BlessingStudio.Wrap
             {
                 DisconnectAll();
                 IsDisposed = true;
+                GC.SuppressFinalize(this);
             }
         }
         public void Dispose()

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BlessingStudio.Wrap.Server
+namespace BlessingStudio.Wrap
 {
     public class RequestInfo
     {

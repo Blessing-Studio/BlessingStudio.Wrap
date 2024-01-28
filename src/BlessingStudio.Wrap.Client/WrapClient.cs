@@ -1,6 +1,8 @@
 ﻿using BlessingStudio.WonderNetwork;
 using BlessingStudio.WonderNetwork.Events;
 using BlessingStudio.WonderNetwork.Utils;
+using BlessingStudio.Wrap.Client.Events;
+using BlessingStudio.Wrap.Client.Managers;
 using BlessingStudio.Wrap.Protocol;
 using BlessingStudio.Wrap.Protocol.Packet;
 using BlessingStudio.Wrap.Utils;
@@ -8,190 +10,254 @@ using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Sockets;
 
-namespace BlessingStudio.Wrap.Client
+namespace BlessingStudio.Wrap.Client;
+
+public class WrapClient : IDisposable
 {
-    public class WrapClient : IDisposable
+    public bool IsConnected
     {
-        public bool IsConnected
+        get
         {
-            get
-            {
-                return Client.Connected;
-            }
+            return Client.Connected;
         }
-        public Connection? ServerConnection { get; private set; }
-        public TcpClient Client { get; private set; }
-        public Channel? MainChannel { get; private set; }
-        public string UserToken { get; private set; } = string.Empty;
-        public string DisconnectReason { get; private set; } = string.Empty;
-        public PeerManager PeerManager { get; private set; } = new PeerManager();
-        public IPEndPoint? RemoteIP { get; private set; }
-        public bool IsDisposed { get; private set; } = false;
-        public WrapClient()
+    }
+    public Connection? ServerConnection { get; private set; }
+    public TcpClient Client { get; private set; }
+    public Channel? MainChannel { get; private set; }
+    public string UserToken { get; private set; } = string.Empty;
+    public string DisconnectReason { get; private set; } = string.Empty;
+    public PeerManager PeerManager { get; private set; } = new PeerManager();
+    public IPEndPoint? RemoteIP { get; private set; }
+    public IPEndPoint LocalIP { get; private set; }
+    public bool IsDisposed { get; private set; } = false;
+    public event WonderNetwork.Events.EventHandler<NewRequestEvent>? NewRequest;
+    public event WonderNetwork.Events.EventHandler<RequestInvalidatedEvent>? RequestInvalidated;
+    public List<RequestInfo> Requests { get; private set; } = new();
+    public WrapClient()
+    {
+        LocalIP = new(new IPAddress(new byte[] { 0, 0, 0, 0 }), Random.Shared.Next(2000, 60000));
+        Client = new();
+        Client.Client.ExclusiveAddressUse = false;
+        Client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+        Client.Client.Bind(LocalIP);
+    }
+    public void Connect(IPAddress address, int port = ConstValue.ServerPort)
+    {
+        CheckDisposed();
+        Client.Connect(address, port);
+        NetworkStream networkStream = Client.GetStream();
+        ServerConnection = new(new SafeNetworkStream(networkStream));
+        ServerConnection.Serializers[typeof(IPacket)] = new PacketSerializer();
+    }
+    public void Close()
+    {
+        if (!IsDisposed)
         {
-            Client = new();
-        }
-        public void Connect(IPAddress address, int port = ConstValue.ServerPort)
-        {
-            CheckDisposed();
-            Client.Connect(address, port);
-            NetworkStream networkStream = Client.GetStream();
-            networkStream.Socket.NoDelay = true;
-            ServerConnection = new(new SafeNetworkStream(networkStream));
-            ServerConnection.Serializers[typeof(IPacket)] = new PacketSerializer();
-        }
-        public void Close()
-        {
-            if (!IsDisposed)
-            {
-                if (IsConnected)
-                {
-                    Client.Close();
-                    ServerConnection!.Dispose();
-                    MainChannel = null;
-                }
-                PeerManager.Dispose();
-                IsDisposed = true;
-            }
-        }
-        public void Dispose()
-        {
-            Close();
-        }
-        public void Start(string userToken = "_")
-        {
-            CheckDisposed();
-            if (ServerConnection == null)
-            {
-                throw new InvalidOperationException();
-            }
-            MainChannel = ServerConnection.CreateChannel("main");
-            // Add handlers
-
-            MainChannel.AddHandler((e) =>
-            {
-                if (e.Object is LoginSuccessfulPacket loginSuccessfulPacket)
-                {
-                    UserToken = loginSuccessfulPacket.UserToken;
-                    Console.WriteLine(UserToken);
-                    IPEndPoint iPEndPoint = new(new IPAddress(loginSuccessfulPacket.IPAddress), loginSuccessfulPacket.port);
-                    RemoteIP = iPEndPoint;
-                }
-                else if (e.Object is LoginFailedPacket loginFailedPacket)
-                {
-                    Dispose();
-                    DisconnectReason = loginFailedPacket.Reason;
-                }
-            });
-
-            MainChannel.AddHandler((e) =>
-            {
-                Task.Run(() =>
-                {
-                    if (e.Object is ConnectRequestPacket connectRequestPacket)
-                    {
-                        //Begin connect
-                        MainChannel.Send(new ConnectAcceptPacket()
-                        {
-                            UserToken = connectRequestPacket.UserToken,
-                        });
-                        IPInfoPacket infoPacket = ServerConnection.WaitFor<IPInfoPacket>("main", TimeSpan.FromSeconds(60))!;
-                        IPEndPoint peerIP = new IPEndPoint(new IPAddress(infoPacket.IPAddress), infoPacket.port);
-                        TryConnect(peerIP, infoPacket.UserToken);
-                    }
-                    if (e.Object is ConnectAcceptPacket connectAcceptPacket)
-                    {
-                        //Begin connect
-                        IPInfoPacket infoPacket = ServerConnection.WaitFor<IPInfoPacket>("main", TimeSpan.FromSeconds(60))!;
-                        IPEndPoint peerIP = new IPEndPoint(new IPAddress(infoPacket.IPAddress), infoPacket.port);
-                        TryConnect(peerIP, connectAcceptPacket.UserToken);
-                    }
-                });
-            });
-
-            ServerConnection.Start();
-            MainChannel.Send(new LoginPacket()
-            {
-                UseCustomToken = !(userToken == "_"),
-                UserToken = userToken
-            });
-            while (true)
-            {
-                Thread.Sleep(5000);
-                MainChannel.Send(new KeepAlivePacket());
-            }
-        }
-        public void MakeRequest(string userToken)
-        {
-            CheckDisposed();
             if (IsConnected)
             {
-                MainChannel!.Send(new ConnectRequestPacket()
-                {
-                    UserToken = userToken
-                });
+                Client.Close();
+                ServerConnection!.Dispose();
+                MainChannel = null;
             }
+            PeerManager.Dispose();
+            IsDisposed = true;
+            Requests.Clear();
+            GC.SuppressFinalize(this);
         }
-        private void TryConnect(IPEndPoint peerIP, string token)
+    }
+    public void Dispose()
+    {
+        Close();
+    }
+    public void Start(string userToken = "_")
+    {
+        CheckDisposed();
+        if (ServerConnection == null)
         {
-            CheckDisposed();
-            TcpClient client = new TcpClient();
-            client.ExclusiveAddressUse = false;
-            client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-            client.Client.Bind(Client.Client.LocalEndPoint!);
-            bool successed = false;
-            TcpClient? connectionToPeer = null;
-            Task task1 = Task.Run(() =>
+            throw new InvalidOperationException();
+        }
+        MainChannel = ServerConnection.CreateChannel("main");
+        // Add handlers
+
+        MainChannel.AddHandler((e) =>
+        {
+            if (e.Object is LoginSuccessfulPacket loginSuccessfulPacket)
             {
-                for (int i = 0; i < 10; i++)
+                UserToken = loginSuccessfulPacket.UserToken;
+                Console.WriteLine(UserToken);
+                IPEndPoint iPEndPoint = new(new IPAddress(loginSuccessfulPacket.IPAddress), loginSuccessfulPacket.port);
+                RemoteIP = iPEndPoint;
+            }
+            else if (e.Object is LoginFailedPacket loginFailedPacket)
+            {
+                Dispose();
+                DisconnectReason = loginFailedPacket.Reason;
+            }
+        });
+
+        MainChannel.AddHandler((e) =>
+        {
+            Task.Run(() =>
+            {
+                if (e.Object is ConnectRequestPacket connectRequestPacket)
                 {
-                    try
+                    if (NewRequest != null)
                     {
-                        client.Connect(peerIP);
-                        successed = true;
-                        connectionToPeer = client;
-                    }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine(e.ToString());
-                    }
-                    if (successed)
-                    {
-                        break;
+                        RequestInfo requestInfo = new(connectRequestPacket.UserToken);
+                        Requests.Add(requestInfo);
+                        NewRequest(new(requestInfo));
                     }
                 }
-            });
-            task1.GetAwaiter().GetResult();
-            if (connectionToPeer == null)
-            {
-                Console.WriteLine("Failed!");
-            }
-            else
-            {
-                Console.WriteLine($"Connected! {token}");
-                connectionToPeer.Client.Blocking = true;
-                NetworkStream networkStream = connectionToPeer.GetStream();
-                networkStream.Socket.NoDelay = true;
-                Connection connection = new(new SafeNetworkStream(networkStream));
-                connection.Serializers[typeof(IPacket)] = new PacketSerializer();
-                Channel channel = connection.CreateChannel("main");
-                PeerManager.AddPeer(token, connection, (IPEndPoint)client.Client.RemoteEndPoint!);
-                connection.AddHandler((ReceivedObjectEvent e) =>
+                else if (e.Object is ConnectAcceptPacket connectAcceptPacket)
                 {
-                    if(e.Object is DisconnectPacket packet)
-                    {
-                        Console.WriteLine(packet.Reason);
-                    }
-                });
-                connection.Start();
-            }
-        }
-        private void CheckDisposed()
+                    //Begin connect
+                    IPInfoPacket infoPacket = ServerConnection.WaitFor<IPInfoPacket>("main", TimeSpan.FromSeconds(15))!;
+                    IPEndPoint peerIP = new(new IPAddress(infoPacket.IPAddress), infoPacket.port);
+                    TryConnect(peerIP, connectAcceptPacket.UserToken, true);
+                }
+                else if (e.Object is ConnectRequestInvalidatedPacket connectRequestInvalidatedPacket)
+                {
+                    Requests.RemoveAll(x => x.Requester == connectRequestInvalidatedPacket.UserToken);
+                    RequestInvalidated?.Invoke(new(connectRequestInvalidatedPacket.UserToken));
+                }
+            });
+        });
+
+        ServerConnection.Start();
+        MainChannel.Send(new LoginPacket()
         {
-            if (IsDisposed)
+            UseCustomToken = !(userToken == "_"),
+            UserToken = userToken
+        });
+        while (true)
+        {
+            Thread.Sleep(5000);
+            MainChannel.Send(new KeepAlivePacket());
+        }
+    }
+    public void MakeRequest(string userToken)
+    {
+        CheckDisposed();
+        if (IsConnected)
+        {
+            MainChannel!.Send(new ConnectRequestPacket()
             {
-                throw new ObjectDisposedException(GetType().FullName);
+                UserToken = userToken
+            });
+        }
+    }
+    public void AcceptRequest(RequestInfo request)
+    {
+        CheckDisposed();
+        if (!Requests.Contains(request))
+        {
+            throw new ArgumentException("The request does not exist", nameof(request));
+        }
+        if (IsConnected)
+        {
+            //Begin connect
+            MainChannel!.Send(new ConnectAcceptPacket()
+            {
+                UserToken = request.Requester,
+            });
+            Requests.Remove(request);
+            IPInfoPacket infoPacket = ServerConnection!.WaitFor<IPInfoPacket>("main", TimeSpan.FromSeconds(15))!;
+            IPEndPoint peerIP = new(new IPAddress(infoPacket.IPAddress), infoPacket.port);
+            TryConnect(peerIP, infoPacket.UserToken);
+        }
+    }
+    private void TryConnect(IPEndPoint peerIP, string token, bool listen = false)
+    {
+        CheckDisposed();
+        TcpClient client = new()
+        {
+            ExclusiveAddressUse = false
+        };
+        client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+        client.Client.Bind(Client.Client.LocalEndPoint!);
+        bool successed = false;
+        TcpClient? connectionToPeer = null;
+        Task task1 = Task.Run(() =>
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                try
+                {
+                    client.Connect(peerIP);
+                    successed = true;
+                    connectionToPeer = client;
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.ToString());
+                }
+                if (successed)
+                {
+                    break;
+                }
             }
+        });
+        TcpListener? listener = null;
+        Task? task2 = null;
+        if (listen)
+        {
+            listener = new(LocalIP)
+            {
+                ExclusiveAddressUse = false
+            };
+            listener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+            listener.Server.Blocking = false;
+            listener.Start();
+            task2 = Task.Run(() =>
+            {
+                while (!successed)
+                {
+                    Thread.Sleep(10);
+                    try
+                    {
+                        TcpClient peer = listener!.AcceptTcpClient();
+                        successed = true;
+                        if (connectionToPeer == null)
+                            connectionToPeer = peer;
+                        else
+                            peer.Close();
+                    }
+                    catch { }
+                }
+
+            });
+        }
+        task1.GetAwaiter().GetResult();
+        listener?.Stop();
+        if (connectionToPeer == null)
+        {
+            Console.WriteLine("Failed!");
+        }
+        else
+        {
+            Console.WriteLine($"Connected! {token}");
+            connectionToPeer.Client.Blocking = true;
+            NetworkStream networkStream = connectionToPeer.GetStream();
+            Connection connection = new(new SafeNetworkStream(networkStream));
+            connection.Serializers[typeof(IPacket)] = new PacketSerializer();
+            Channel channel = connection.CreateChannel("main");
+            PeerManager.AddPeer(token, connection, (IPEndPoint)client.Client.RemoteEndPoint!);
+            connection.AddHandler((ReceivedObjectEvent e) =>
+            {
+                if (e.Object is DisconnectPacket packet)
+                {
+                    Console.WriteLine(packet.Reason);
+                }
+            });
+            connection.Start();
+        }
+    }
+
+    private void CheckDisposed()
+    {
+        if (IsDisposed)
+        {
+            throw new ObjectDisposedException(GetType().FullName);
         }
     }
 }

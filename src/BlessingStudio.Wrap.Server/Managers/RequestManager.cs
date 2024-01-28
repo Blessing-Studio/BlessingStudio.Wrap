@@ -11,12 +11,13 @@ namespace BlessingStudio.Wrap.Server.Managers
 {
     public class RequestManager : IEnumerable<RequestInfo>
     {
-        private List<RequestInfo> requestInfos = new List<RequestInfo>();
-        public IReadOnlyCollection<RequestInfo> RequestInfos { 
+        private readonly List<RequestInfo> requestInfos = new();
+        public IReadOnlyCollection<RequestInfo> RequestInfos
+        {
             get
             {
                 return requestInfos.AsReadOnly();
-            } 
+            }
         }
         public RequestManager()
         {
@@ -30,7 +31,7 @@ namespace BlessingStudio.Wrap.Server.Managers
                         List<RequestInfo> toRemove = new();
                         foreach (RequestInfo info in requestInfos)
                         {
-                            if((DateTimeOffset.Now - info.DateTime).TotalSeconds > 60)
+                            if ((DateTimeOffset.Now - info.DateTime).TotalSeconds > 60)
                             {
                                 toRemove.Add(info);
                             }
@@ -68,7 +69,7 @@ namespace BlessingStudio.Wrap.Server.Managers
         }
         public void RemoveAll(UserInfo userInfo)
         {
-            lock(requestInfos)
+            lock (requestInfos)
                 requestInfos.RemoveAll(x => x.Receiver == userInfo || x.Requester == userInfo);
         }
         public void Remove(UserInfo requester, UserInfo receiver)
