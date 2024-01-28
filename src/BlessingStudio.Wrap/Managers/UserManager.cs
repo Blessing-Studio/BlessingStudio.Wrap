@@ -1,127 +1,120 @@
 ﻿using BlessingStudio.WonderNetwork;
 using BlessingStudio.WonderNetwork.Interfaces;
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
 using System.Net;
-using System.Reflection.Metadata;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace BlessingStudio.Wrap.Managers
+namespace BlessingStudio.Wrap.Managers;
+
+public class UserManager : IEnumerable<UserInfo>, IDisposable
 {
-    public class UserManager : IEnumerable<UserInfo>, IDisposable
+    private readonly List<UserInfo> users = new();
+    public bool IsDisposed { get; private set; } = false;
+    public ReadOnlyCollection<UserInfo> Users
     {
-        private readonly List<UserInfo> users = new();
-        public bool IsDisposed { get; private set; } = false;
-        public ReadOnlyCollection<UserInfo> Users
+        get
         {
-            get
+            CheckDisposed();
+            return users.AsReadOnly();
+        }
+    }
+    ~UserManager()
+    {
+        Close();
+    }
+    public void AddNewUser(Connection connection, string userToken, IPEndPoint ip)
+    {
+        CheckDisposed();
+        lock (users)
+        {
+            users.Add(new UserInfo()
             {
-                CheckDisposed();
-                return users.AsReadOnly();
+                Connection = connection,
+                UserToken = userToken,
+                IP = ip
+            });
+            connection.Disposed += e =>
+            {
+                RemoveUser(userToken);
+            };
+        }
+    }
+    public void RemoveUser(Connection connection)
+    {
+        CheckDisposed();
+        lock (users)
+            users.RemoveAll(x => x.Connection == connection);
+    }
+    public void RemoveUser(string userToken)
+    {
+        CheckDisposed();
+        lock (users)
+            users.RemoveAll(x => x.UserToken == userToken);
+    }
+    public UserInfo? Find(string userToken)
+    {
+        CheckDisposed();
+        lock (users)
+        {
+            foreach (UserInfo userInfo in users)
+            {
+                if (userInfo.UserToken == userToken) return userInfo;
             }
         }
-        ~UserManager()
+        return null;
+    }
+    public UserInfo? Find(IConnection connection)
+    {
+        CheckDisposed();
+        lock (users)
         {
-            Close();
-        }
-        public void AddNewUser(Connection connection, string userToken, IPEndPoint ip)
-        {
-            CheckDisposed();
-            lock (users)
+            foreach (UserInfo userInfo in users)
             {
-                users.Add(new UserInfo()
-                {
-                    Connection = connection,
-                    UserToken = userToken,
-                    IP = ip
-                });
-                connection.Disposed += e =>
-                {
-                    RemoveUser(userToken);
-                };
+                if (userInfo.Connection == connection) return userInfo;
             }
         }
-        public void RemoveUser(Connection connection)
+        return null;
+    }
+    public void DisconnectAll()
+    {
+        CheckDisposed();
+        foreach (UserInfo user in users)
         {
-            CheckDisposed();
-            lock (users)
-                users.RemoveAll(x => x.Connection == connection);
+            user.Connection.Dispose();
         }
-        public void RemoveUser(string userToken)
-        {
-            CheckDisposed();
-            lock (users)
-                users.RemoveAll(x => x.UserToken == userToken);
-        }
-        public UserInfo? Find(string userToken)
-        {
-            CheckDisposed();
-            lock (users)
-            {
-                foreach (UserInfo userInfo in users)
-                {
-                    if (userInfo.UserToken == userToken) return userInfo;
-                }
-            }
-            return null;
-        }
-        public UserInfo? Find(IConnection connection)
-        {
-            CheckDisposed();
-            lock (users)
-            {
-                foreach (UserInfo userInfo in users)
-                {
-                    if (userInfo.Connection == connection) return userInfo;
-                }
-            }
-            return null;
-        }
-        public void DisconnectAll()
-        {
-            CheckDisposed();
-            foreach (UserInfo user in users)
-            {
-                user.Connection.Dispose();
-            }
-            users.Clear();
-        }
+        users.Clear();
+    }
 
-        public IEnumerator<UserInfo> GetEnumerator()
-        {
-            CheckDisposed();
-            return ((IEnumerable<UserInfo>)Users).GetEnumerator();
-        }
+    public IEnumerator<UserInfo> GetEnumerator()
+    {
+        CheckDisposed();
+        return ((IEnumerable<UserInfo>)Users).GetEnumerator();
+    }
 
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            CheckDisposed();
-            return ((IEnumerable)Users).GetEnumerator();
-        }
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        CheckDisposed();
+        return ((IEnumerable)Users).GetEnumerator();
+    }
 
-        public void Close()
+    public void Close()
+    {
+        if (!IsDisposed)
         {
-            if (!IsDisposed)
-            {
-                DisconnectAll();
-                IsDisposed = true;
-                GC.SuppressFinalize(this);
-            }
+            DisconnectAll();
+            IsDisposed = true;
+            GC.SuppressFinalize(this);
         }
-        public void Dispose()
+    }
+    public void Dispose()
+    {
+        Close();
+    }
+    private void CheckDisposed()
+    {
+        if (IsDisposed)
         {
-            Close();
-        }
-        private void CheckDisposed()
-        {
-            if (IsDisposed)
-            {
-                throw new ObjectDisposedException(GetType().FullName);
-            }
+            throw new ObjectDisposedException(GetType().FullName);
         }
     }
 }

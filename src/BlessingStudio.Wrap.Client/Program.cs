@@ -1,7 +1,6 @@
 ﻿using BlessingStudio.Wrap.Client;
 using BlessingStudio.Wrap.Utils;
 using System.Net;
-using System.Net.Sockets;
 
 AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(CurrentDomain_UnhandledException);
 Console.WriteLine("NAT类型");

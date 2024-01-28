@@ -1,9 +1,10 @@
-﻿using System.Net;
-using BlessingStudio.WonderNetwork.Interfaces;
+﻿using BlessingStudio.WonderNetwork.Interfaces;
+using System.Net;
 
 namespace BlessingStudio.Wrap;
 
-public sealed class UserInfo {
+public sealed class UserInfo
+{
 #pragma warning disable CS8618 // 在退出构造函数时，不可为 null 的字段必须包含非 null 值。请考虑声明为可以为 null。
     public IPEndPoint IP { get; set; }
 
@@ -11,11 +12,13 @@ public sealed class UserInfo {
 
     public IConnection Connection { get; set; }
 
-    public override bool Equals(object? obj) {
+    public override bool Equals(object? obj)
+    {
         return obj is UserInfo info && info.UserToken == UserToken;
     }
 
-    public override int GetHashCode() {
+    public override int GetHashCode()
+    {
         return UserToken.GetHashCode();
     }
 
