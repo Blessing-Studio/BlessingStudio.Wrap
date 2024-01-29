@@ -20,6 +20,16 @@ wrapClient.UnexpectedDisconnect += e =>
     Console.WriteLine($"与{e.UserToken}断开连接");
 };
 
+wrapClient.ConnectPeerSuccessfully += e =>
+{
+    Console.WriteLine($"与{e.UserToken}连接成功");
+};
+
+wrapClient.ReconnectPeer += e =>
+{
+    Console.WriteLine($"开始与{e.UserToken}反向打洞");
+};
+
 wrapClient.LoginedSuccessfully += e =>
 {
     Console.WriteLine("登录成功");

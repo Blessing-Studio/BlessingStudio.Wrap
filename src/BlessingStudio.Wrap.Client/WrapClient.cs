@@ -34,6 +34,7 @@ public class WrapClient : IDisposable
     public event WonderNetwork.Events.EventHandler<ExpectedDisconnectEvent>? ExpectedDisconnect;
     public event WonderNetwork.Events.EventHandler<UnexpectedDisconnectEvent>? UnexpectedDisconnect;
     public event WonderNetwork.Events.EventHandler<LoginedSuccessfullyEvent>? LoginedSuccessfully;
+    public event WonderNetwork.Events.EventHandler<ReconnectPeerEvent>? ReconnectPeer;
     public List<RequestInfo> Requests { get; private set; } = new();
     public WrapClient()
     {
@@ -170,7 +171,7 @@ public class WrapClient : IDisposable
             TryConnect(peerIP, infoPacket.UserToken);
         }
     }
-    private void TryConnect(IPEndPoint peerIP, string token, bool listen = false)
+    private void TryConnect(IPEndPoint peerIP, string token, bool listen = false, bool isReconnect = false)
     {
         CheckDisposed();
         TcpClient client = new()
@@ -181,9 +182,10 @@ public class WrapClient : IDisposable
         client.Client.Bind(Client.Client.LocalEndPoint!);
         bool successed = false;
         TcpClient? connectionToPeer = null;
+        Connection? connection = null;
         Task task1 = Task.Run(() =>
         {
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < 4; i++)
             {
                 try
                 {
@@ -207,13 +209,11 @@ public class WrapClient : IDisposable
                 ExclusiveAddressUse = false
             };
             listener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-            listener.Server.Blocking = false;
             listener.Start();
             task2 = Task.Run(() =>
             {
                 while (!successed)
                 {
-                    Thread.Sleep(10);
                     try
                     {
                         TcpClient peer = listener!.AcceptTcpClient();
@@ -232,14 +232,29 @@ public class WrapClient : IDisposable
         listener?.Stop();
         if (connectionToPeer == null)
         {
-            ConnectFailed?.Invoke(new(token));
+            client.Close();
+            if (!isReconnect)
+            {
+                ReconnectPeer?.Invoke(new(token));
+                TryConnect(peerIP, token, !listen, true);
+            }
+            else
+            {
+                ConnectFailed?.Invoke(new(token));
+            }
             return;
         }
+        connection = CreateConnectionToPeer(token, connectionToPeer);
+        ConnectPeerSuccessfully?.Invoke(new(token, connection));
+    }
+
+    private Connection CreateConnectionToPeer(string token, TcpClient connectionToPeer)
+    {
         NetworkStream networkStream = connectionToPeer.GetStream();
         Connection connection = new(new SafeNetworkStream(networkStream));
         connection.Serializers[typeof(IPacket)] = new PacketSerializer();
         Channel channel = connection.CreateChannel("main");
-        PeerManager.AddPeer(token, connection, (IPEndPoint)client.Client.RemoteEndPoint!);
+        PeerManager.AddPeer(token, connection, (IPEndPoint)connectionToPeer.Client.RemoteEndPoint!);
 
         bool IsExpectedDisconnect = false;
         channel.AddHandler((ReceivedObjectEvent e) =>
@@ -260,7 +275,7 @@ public class WrapClient : IDisposable
         });
 
         connection.Start();
-        ConnectPeerSuccessfully?.Invoke(new(token, connection));
+        return connection;
     }
 
     private void CheckDisposed()
