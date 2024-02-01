@@ -7,13 +7,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BlessingStudio.Wrap", "Bles
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "refs", "refs", "{BF315ED3-D2BA-464D-977D-5850A909A974}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BlessingStudio.WonderNetwork", "..\refs\BlessingStudio.WonderNetwork\src\BlessingStudio.WonderNetwork\BlessingStudio.WonderNetwork.csproj", "{55EF0F1B-96CE-4640-85CC-5BDE055A12CF}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "STUN", "..\refs\NatTypeTester\STUN\STUN.csproj", "{6C059A2D-8194-41B0-ACC1-0A11B0DECFBB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlessingStudio.Wrap.Server", "BlessingStudio.Wrap.Server\BlessingStudio.Wrap.Server.csproj", "{74D352BB-DE70-4ADB-96D6-B850232FF36E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BlessingStudio.Wrap.Server", "BlessingStudio.Wrap.Server\BlessingStudio.Wrap.Server.csproj", "{74D352BB-DE70-4ADB-96D6-B850232FF36E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlessingStudio.Wrap.Client", "BlessingStudio.Wrap.Client\BlessingStudio.Wrap.Client.csproj", "{EB74C439-A7F2-4C9B-8573-52A70FE96D4E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BlessingStudio.Wrap.Client", "BlessingStudio.Wrap.Client\BlessingStudio.Wrap.Client.csproj", "{EB74C439-A7F2-4C9B-8573-52A70FE96D4E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -25,10 +23,6 @@ Global
 		{907DFD79-4AAB-4EC2-864E-E8869441CEE9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{907DFD79-4AAB-4EC2-864E-E8869441CEE9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{907DFD79-4AAB-4EC2-864E-E8869441CEE9}.Release|Any CPU.Build.0 = Release|Any CPU
-		{55EF0F1B-96CE-4640-85CC-5BDE055A12CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{55EF0F1B-96CE-4640-85CC-5BDE055A12CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{55EF0F1B-96CE-4640-85CC-5BDE055A12CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{55EF0F1B-96CE-4640-85CC-5BDE055A12CF}.Release|Any CPU.Build.0 = Release|Any CPU
 		{6C059A2D-8194-41B0-ACC1-0A11B0DECFBB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{6C059A2D-8194-41B0-ACC1-0A11B0DECFBB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6C059A2D-8194-41B0-ACC1-0A11B0DECFBB}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -46,7 +40,6 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{55EF0F1B-96CE-4640-85CC-5BDE055A12CF} = {BF315ED3-D2BA-464D-977D-5850A909A974}
 		{6C059A2D-8194-41B0-ACC1-0A11B0DECFBB} = {BF315ED3-D2BA-464D-977D-5850A909A974}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
