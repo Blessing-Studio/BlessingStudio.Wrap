@@ -6,6 +6,7 @@ using BlessingStudio.Wrap.Protocol;
 using BlessingStudio.Wrap.Protocol.Packet;
 using BlessingStudio.Wrap.Server.Managers;
 using BlessingStudio.Wrap.Utils;
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 
@@ -16,9 +17,9 @@ public class WrapServer
     public TcpListener Listener;
     public UserManager UserManager { get; private set; } = new();
     public RequestManager Requests { get; private set; } = new();
-    public Dictionary<IConnection, bool> Logined { get; private set; } = new();
+    public ConcurrentDictionary<IConnection, bool> Logined { get; private set; } = new();
     public CancellationTokenSource KeepAliveThreadCancellationTokenSource { get; } = new();
-    public Dictionary<string, DateTimeOffset> KeepAliveData { get; } = new();
+    public ConcurrentDictionary<string, DateTimeOffset> KeepAliveData { get; } = new();
     public Thread KeepAliveThread { get; }
     public WrapServer(int port = ConstValue.ServerPort)
     {
@@ -30,18 +31,16 @@ public class WrapServer
             {
                 if (cancellationToken.IsCancellationRequested) return;
                 Thread.Sleep(1000);
-                lock (KeepAliveData)
+                foreach (var pair in KeepAliveData)
                 {
-                    foreach (var pair in KeepAliveData)
+                    if ((DateTimeOffset.Now - pair.Value).TotalSeconds > 30)
                     {
-                        if ((DateTimeOffset.Now - pair.Value).TotalSeconds > 30)
-                        {
-                            UserInfo info = UserManager.Find(pair.Key)!;
-                            info.Connection.Send("main", new DisconnectPacket() { Reason = "You didn't send KeepAlivePacket in 30s" });
-                            info.Connection.Dispose();
-                        }
+                        UserInfo info = UserManager.Find(pair.Key)!;
+                        info.Connection.Send("main", new DisconnectPacket() { Reason = "You didn't send KeepAlivePacket in 30s" });
+                        info.Connection.Dispose();
                     }
                 }
+
             }
         });
     }
@@ -96,7 +95,7 @@ public class WrapServer
                                 Reason = "You logined again."
                             });
                             e.Connection.Dispose();
-                            Logined.Remove(e.Connection);
+                            Logined.Remove(e.Connection, out _);
                         }
                     }
                 });
@@ -106,10 +105,7 @@ public class WrapServer
                     UserInfo user = UserManager.Find(e.Connection)!;
                     if (e.Object is KeepAlivePacket keepAlivePacket)
                     {
-                        lock (KeepAliveData)
-                        {
-                            KeepAliveData[user.UserToken] = DateTimeOffset.Now;
-                        }
+                        KeepAliveData[user.UserToken] = DateTimeOffset.Now;
                     }
                     else if (e.Object is ConnectRequestPacket requestPacket)
                     {
@@ -159,10 +155,7 @@ public class WrapServer
                     try
                     {
                         UserInfo user = UserManager.Find(e.Connection)!;
-                        lock (KeepAliveData)
-                        {
-                            KeepAliveData.Remove(user.UserToken);
-                        }
+                        KeepAliveData.Remove(user.UserToken, out _);
                     }
                     catch { }
                 });

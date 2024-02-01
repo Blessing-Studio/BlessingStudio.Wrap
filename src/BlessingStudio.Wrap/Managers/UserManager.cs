@@ -100,16 +100,16 @@ public class UserManager : IEnumerable<UserInfo>, IDisposable
 
     public void Close()
     {
+        Dispose();
+    }
+    public void Dispose()
+    {
         if (!IsDisposed)
         {
             DisconnectAll();
             IsDisposed = true;
             GC.SuppressFinalize(this);
         }
-    }
-    public void Dispose()
-    {
-        Close();
     }
     private void CheckDisposed()
     {

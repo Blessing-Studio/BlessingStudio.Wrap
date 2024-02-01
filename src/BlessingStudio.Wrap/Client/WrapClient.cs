@@ -2,8 +2,10 @@
 using BlessingStudio.WonderNetwork.Events;
 using BlessingStudio.Wrap.Client.Events;
 using BlessingStudio.Wrap.Client.Managers;
+using BlessingStudio.Wrap.Interfaces;
 using BlessingStudio.Wrap.Protocol;
 using BlessingStudio.Wrap.Protocol.Packet;
+using BlessingStudio.Wrap.Utils;
 using System.Net;
 using System.Net.Sockets;
 
@@ -26,6 +28,7 @@ public class WrapClient : IDisposable
     public PeerManager PeerManager { get; private set; } = new PeerManager();
     public IPEndPoint? RemoteIP { get; private set; }
     public IPEndPoint LocalIP { get; private set; }
+    public IUPnPService? UPnPService { get; private set; }
     public bool IsDisposed { get; private set; } = false;
     public event WonderNetwork.Events.EventHandler<NewRequestEvent>? NewRequest;
     public event WonderNetwork.Events.EventHandler<RequestInvalidatedEvent>? RequestInvalidated;
@@ -38,11 +41,15 @@ public class WrapClient : IDisposable
     public List<RequestInfo> Requests { get; private set; } = new();
     public WrapClient()
     {
-        LocalIP = new(new IPAddress(new byte[] { 0, 0, 0, 0 }), Random.Shared.Next(2000, 60000));
+        LocalIP = new(new IPAddress(new byte[] { 0, 0, 0, 0 }), RandomUtils.GetRandomPort());
         Client = new();
         Client.Client.ExclusiveAddressUse = false;
         Client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
         Client.Client.Bind(LocalIP);
+    }
+    public WrapClient(IUPnPService uPnPService) : this()
+    {
+        UPnPService = uPnPService;
     }
     public void Connect(IPAddress address, int port = ConstValue.ServerPort)
     {
@@ -54,8 +61,16 @@ public class WrapClient : IDisposable
     }
     public void Close()
     {
+        Dispose();
+    }
+    public void Dispose()
+    {
         if (!IsDisposed)
         {
+            if (RemoteIP != null && UPnPService != null)
+            {
+                UPnPService.DeletePortMapping(RemoteIP.Port, IUPnPService.SocketProtocol.TCP);
+            }
             if (IsConnected)
             {
                 Client.Close();
@@ -67,10 +82,6 @@ public class WrapClient : IDisposable
             Requests.Clear();
             GC.SuppressFinalize(this);
         }
-    }
-    public void Dispose()
-    {
-        Close();
     }
     public void Start(string userToken = "_")
     {
@@ -88,6 +99,7 @@ public class WrapClient : IDisposable
             {
                 UserToken = loginSuccessfulPacket.UserToken;
                 RemoteIP = new(new IPAddress(loginSuccessfulPacket.IPAddress), loginSuccessfulPacket.port);
+                UPnPService?.AddPortMapping(RemoteIP.Port, IUPnPService.SocketProtocol.TCP, ((IPEndPoint)Client.Client.LocalEndPoint!).Port, "WrapClient");
                 LoginedSuccessfully?.Invoke(new(loginSuccessfulPacket.UserToken));
             }
             else if (e.Object is LoginFailedPacket loginFailedPacket)
@@ -113,7 +125,7 @@ public class WrapClient : IDisposable
                 else if (e.Object is ConnectAcceptPacket connectAcceptPacket)
                 {
                     //Begin connect
-                    IPInfoPacket infoPacket = ServerConnection.WaitFor<IPInfoPacket>("main", TimeSpan.FromSeconds(15))!;
+                    IPInfoPacket infoPacket = ServerConnection.WaitFor<IPInfoPacket>("main", TimeSpan.FromSeconds(5))!;
                     IPEndPoint peerIP = new(new IPAddress(infoPacket.IPAddress), infoPacket.port);
                     TryConnect(peerIP, connectAcceptPacket.UserToken, true);
                 }
@@ -166,7 +178,7 @@ public class WrapClient : IDisposable
                 UserToken = request.Requester,
             });
             Requests.Remove(request);
-            IPInfoPacket infoPacket = ServerConnection!.WaitFor<IPInfoPacket>("main", TimeSpan.FromSeconds(15))!;
+            IPInfoPacket infoPacket = ServerConnection!.WaitFor<IPInfoPacket>("main", TimeSpan.FromSeconds(5))!;
             IPEndPoint peerIP = new(new IPAddress(infoPacket.IPAddress), infoPacket.port);
             TryConnect(peerIP, infoPacket.UserToken);
         }
