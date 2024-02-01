@@ -1,25 +1,38 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Authors>Ddggdd135;YangSpring114</Authors>
+    <Company>BlessingStudio</Company>
+    <Title>$(AssemblyName)</Title>
+    <Description>P2P转发库</Description>
+    <PackageProjectUrl>https://github.com/Blessing-Studio/BlessingStudio.Wrap</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Blessing-Studio/BlessingStudio.Wrap</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>P2P</PackageTags>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <NoWarn>CS1701;CS1702;VSTHRD110</NoWarn>
+    <NoWarn>CS1701;CS1702;VSTHRD110;VSTHRD002</NoWarn>
+    <WarningLevel>9999</WarningLevel>
+    <CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <NoWarn>CS1701;CS1702;VSTHRD110</NoWarn>
+    <NoWarn>CS1701;CS1702;VSTHRD110;VSTHRD002</NoWarn>
+    <WarningLevel>9999</WarningLevel>
+    <CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="BlessingStudio.WonderNetwork" Version="1.0.0" />
     <PackageReference Include="Waher.Networking.UPnP" Version="2.0.2" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\refs\BlessingStudio.WonderNetwork\src\BlessingStudio.WonderNetwork\BlessingStudio.WonderNetwork.csproj" />
     <ProjectReference Include="..\..\refs\NatTypeTester\STUN\STUN.csproj" />
   </ItemGroup>
 
