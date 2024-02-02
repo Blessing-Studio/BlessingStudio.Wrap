@@ -1,4 +1,6 @@
-﻿using System.Net;
+﻿using BlessingStudio.Wrap.Utils;
+using STUN.StunResult;
+using System.Net;
 using System.Net.Sockets;
 using Waher.Networking.UPnP;
 
@@ -6,6 +8,7 @@ namespace BlessingStudio.Wrap.Interfaces;
 
 public interface IUPnPService
 {
+    public static IPAddress? LocalIPAddressCache { get; private set; } = null;
     UPnPService GetUPnPService();
     public enum SocketProtocol
     {
@@ -14,8 +17,7 @@ public interface IUPnPService
     void AddPortMapping(IPAddress? NewRemoteHost, int NewExternalPort, SocketProtocol NewProtocol, IPAddress NewInternalClient, int NewInternalPort, bool NewEnabled, string NewPortMappingDescription, TimeSpan NewLeaseDuration);
     void AddPortMapping(int NewExternalPort, SocketProtocol NewProtocol, int NewInternalPort, bool NewEnabled, string NewPortMappingDescription, TimeSpan NewLeaseDuration)
     {
-        string localAddress = GetLocalIpAddress(AddressFamily.InterNetwork).First();
-        AddPortMapping(null, NewExternalPort, NewProtocol, IPAddress.Parse(localAddress), NewInternalPort, NewEnabled, NewPortMappingDescription, NewLeaseDuration);
+        AddPortMapping(null, NewExternalPort, NewProtocol, GetLocalIPAddress(), NewInternalPort, NewEnabled, NewPortMappingDescription, NewLeaseDuration);
     }
     void AddPortMapping(int NewExternalPort, SocketProtocol NewProtocol, int NewInternalPort, bool NewEnabled, string NewPortMappingDescription)
     {
@@ -43,7 +45,7 @@ public interface IUPnPService
     /// 获取本机所有ip地址
     /// </summary>
     /// <returns>ip地址集合</returns>
-    public static List<string> GetLocalIpAddress(AddressFamily? netType)
+    public static IList<string> GetLocalIPAddresses(AddressFamily? netType)
     {
         string hostName = Dns.GetHostName();                    //获取主机名称  
         IPAddress[] addresses = Dns.GetHostAddresses(hostName); //解析主机IP地址  
@@ -69,5 +71,14 @@ public interface IUPnPService
             }
         }
         return IPList;
-}
+    }
+    public static IPAddress GetLocalIPAddress()
+    {
+        if (LocalIPAddressCache == null)
+        {
+            ClassicStunResult result = StunUtils.GetClassicStunResultAsync().GetAwaiter().GetResult();
+            LocalIPAddressCache = result.LocalEndPoint!.Address;
+        }
+        return LocalIPAddressCache;
+    }
 }

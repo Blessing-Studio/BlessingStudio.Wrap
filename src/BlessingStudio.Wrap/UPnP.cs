@@ -1,4 +1,5 @@
 ﻿using BlessingStudio.Wrap.Interfaces;
+using BlessingStudio.Wrap.Utils;
 using System.Net;
 using Waher.Networking.UPnP;
 
@@ -11,7 +12,7 @@ public class UPnP : IUPnPService
     public void AddPortMapping(IPAddress? NewRemoteHost, int NewExternalPort, IUPnPService.SocketProtocol NewProtocol, IPAddress NewInternalClient, int NewInternalPort, bool NewEnabled, string NewPortMappingDescription, TimeSpan NewLeaseDuration)
     {
         UPnPService.GetService().InvokeAsync("AddPortMapping", 3000,
-                new KeyValuePair<string, object>("NewRemoteHost", (NewRemoteHost is null) ? "" : NewRemoteHost.ToString()),
+                new KeyValuePair<string, object>("NewRemoteHost", (NewRemoteHost is null) ? GetExternalIPAddress().ToString() : NewRemoteHost.ToString()),
                 new KeyValuePair<string, object>("NewExternalPort", NewExternalPort),
                 new KeyValuePair<string, object>("NewProtocol", NewProtocol.ToString()),
                 new KeyValuePair<string, object>("NewInternalPort", NewInternalPort),
@@ -24,14 +25,14 @@ public class UPnP : IUPnPService
     public void DeletePortMapping(IPAddress? NewRemoteHost, int NewExternalPort, IUPnPService.SocketProtocol NewProtocol)
     {
         UPnPService.GetService().InvokeAsync("DeletePortMapping", 3000,
-                new KeyValuePair<string, object>("NewRemoteHost", (NewRemoteHost is null) ? "" : NewRemoteHost.ToString()),
+                new KeyValuePair<string, object>("NewRemoteHost", (NewRemoteHost is null) ? GetExternalIPAddress().ToString() : NewRemoteHost.ToString()),
                 new KeyValuePair<string, object>("NewExternalPort", NewExternalPort),
                 new KeyValuePair<string, object>("NewProtocol", NewProtocol.ToString())).GetAwaiter().GetResult();
     }
 
     public IPAddress GetExternalIPAddress()
     {
-        string address = (string)UPnPService.GetService().InvokeAsync("GetExternalIPAddress", 3).GetAwaiter().GetResult().Value["NewExternalIPAddress"];
+        string address = (string)UPnPService.GetService().InvokeAsync("GetExternalIPAddress", 3000).GetAwaiter().GetResult().Value["NewExternalIPAddress"];
         return IPAddress.Parse(address);
     }
 

@@ -11,7 +11,7 @@ public static class RandomUtils
         IList HasUsedPort = SocketUtils.PortIsUsed();
         int port = 0;
         bool IsRandomOk = true;
-        Random random = new((int)DateTime.Now.Ticks);
+        Random random = Random.Shared;
         while (IsRandomOk)
         {
             port = random.Next(1024, 65535);

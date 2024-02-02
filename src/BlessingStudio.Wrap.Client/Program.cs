@@ -4,30 +4,45 @@ using BlessingStudio.Wrap.Interfaces;
 using BlessingStudio.Wrap.Utils;
 using STUN.StunResult;
 using System.Net;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using Waher.Networking.UPnP;
 using static BlessingStudio.Wrap.Interfaces.IUPnPService;
 
-
+TimeSpan timeout = TimeSpan.FromSeconds(10);
 AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(CurrentDomain_UnhandledException);
 List<UPnPDevice> UPnPDeviceLocations = new();
 IUPnPService? uPnP = null;
+bool Searching = true;
 UPnPClient client = new();
 client.OnDeviceFound += Client_OnDeviceFound;
 void Client_OnDeviceFound(object Sender, DeviceLocationEventArgs e)
 {
-    if (e.Location.GetDevice().Device.DeviceType == "urn:schemas-upnp-org:device:InternetGatewayDevice:1")
-    {
-        UPnPDeviceLocations.Add(e.Location.GetDevice().Device);
-    }
+    if(e.Location.GetDevice().Device.DeviceType != "urn:schemas-upnp-org:device:InternetGatewayDevice:1") return;
+    if(e.RemoteEndPoint.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork) return;
+    if (Searching)
+        Console.WriteLine(e.Location.GetDevice().Device.FriendlyName);
+    UPnPDeviceLocations.Add(e.Location.GetDevice().Device);
 }
 
 client.StartSearch();
-Thread.Sleep(3000);
+Console.WriteLine("开始查找UPnP设备");
+DateTime time = DateTime.Now;
+while((DateTime.Now - time) < timeout && UPnPDeviceLocations.Count == 0)
+{
+    Thread.Sleep(1);
+}
+Searching = false;
 foreach (UPnPDevice UPnPDeviceLocation in UPnPDeviceLocations)
 {
     if (UPnPDeviceLocation != null)
     {
-        UPnPService natService = UPnPDeviceLocation.GetService("urn:schemas-upnp-org:service:WANIPConnection:1"); // 获取WAN IP连接服务
+        UPnPService? natService = UPnPDeviceLocation.GetService("urn:schemas-upnp-org:service:WANIPConnection:1"); // 获取WAN IP连接服务
+        if(natService is null)
+        {
+            natService = UPnPDeviceLocation.GetService("urn:schemas-upnp-org:service:WANPPPConnection:1");
+        }
         if (natService != null)
         {
             uPnP = new UPnP(natService);
