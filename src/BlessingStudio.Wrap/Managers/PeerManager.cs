@@ -1,7 +1,7 @@
 ﻿using BlessingStudio.WonderNetwork;
 using BlessingStudio.WonderNetwork.Events;
 using BlessingStudio.WonderNetwork.Interfaces;
-using BlessingStudio.Wrap.Managers;
+using BlessingStudio.Wrap.Interfaces;
 using BlessingStudio.Wrap.Protocol.Packet;
 using BlessingStudio.Wrap.Utils;
 using System.Buffers;
@@ -11,18 +11,18 @@ using System.Net;
 using System.Net.Sockets;
 using Channel = BlessingStudio.WonderNetwork.Channel;
 
-namespace BlessingStudio.Wrap.Client.Managers;
+namespace BlessingStudio.Wrap.Managers;
 
-public class PeerManager : IDisposable
+public class PeerManager : IDisposable, IPeerManager
 {
-    public UserManager UserManager { get; set; } = new();
+    public IUserManager UserManager { get; } = new UserManager();
     public ConcurrentDictionary<string, DateTimeOffset> KeepAliveData { get; } = new();
     public Thread KeepAliveThread { get; }
     public CancellationTokenSource KeepAliveThreadCancellationTokenSource { get; } = new();
     public ushort Nextport { get; set; } = 42000;
     public IPEndPoint Server = new(new IPAddress(new byte[] { 127, 0, 0, 1 }), 25565);
     public List<string> IgnoredConnectionId { get; } = new();
-    public ArrayPool<byte> Buffer { get; } = ArrayPool<byte>.Create();
+    private ArrayPool<byte> Buffer { get; } = ArrayPool<byte>.Create();
     public bool IsDisposed { get; private set; } = false;
     public PeerManager()
     {
@@ -51,7 +51,7 @@ public class PeerManager : IDisposable
     {
         Close();
     }
-    public void AddPeer(string token, Connection connection, IPEndPoint ip)
+    public void AddPeer(string token, IConnection connection, IPEndPoint ip)
     {
         CheckDisposed();
         UserManager.AddNewUser(connection, token, ip);
@@ -235,6 +235,7 @@ public class PeerManager : IDisposable
         if (!IsDisposed)
         {
             KeepAliveThreadCancellationTokenSource.Cancel();
+            KeepAliveThread.Join();
             UserManager.Dispose();
             IsDisposed = true;
             GC.SuppressFinalize(this);

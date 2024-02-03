@@ -1,8 +1,8 @@
 ﻿using BlessingStudio.WonderNetwork;
 using BlessingStudio.WonderNetwork.Events;
 using BlessingStudio.Wrap.Client.Events;
-using BlessingStudio.Wrap.Client.Managers;
 using BlessingStudio.Wrap.Interfaces;
+using BlessingStudio.Wrap.Managers;
 using BlessingStudio.Wrap.Protocol;
 using BlessingStudio.Wrap.Protocol.Packet;
 using BlessingStudio.Wrap.Utils;
@@ -11,7 +11,7 @@ using System.Net.Sockets;
 
 namespace BlessingStudio.Wrap.Client;
 
-public class WrapClient : IDisposable
+public class WrapClient : IDisposable, IWrapClient
 {
     public bool IsConnected
     {

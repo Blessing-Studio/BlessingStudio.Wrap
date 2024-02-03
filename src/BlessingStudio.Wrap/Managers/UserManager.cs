@@ -1,17 +1,18 @@
 ﻿using BlessingStudio.WonderNetwork;
 using BlessingStudio.WonderNetwork.Events;
 using BlessingStudio.WonderNetwork.Interfaces;
+using BlessingStudio.Wrap.Interfaces;
 using System.Collections;
 using System.Collections.ObjectModel;
 using System.Net;
 
 namespace BlessingStudio.Wrap.Managers;
 
-public class UserManager : IEnumerable<UserInfo>, IDisposable
+public class UserManager : IEnumerable<UserInfo>, IDisposable, IUserManager
 {
     private readonly List<UserInfo> users = new();
     public bool IsDisposed { get; private set; } = false;
-    public ReadOnlyCollection<UserInfo> Users
+    public IReadOnlyCollection<UserInfo> Users
     {
         get
         {
@@ -23,7 +24,7 @@ public class UserManager : IEnumerable<UserInfo>, IDisposable
     {
         Close();
     }
-    public void AddNewUser(Connection connection, string userToken, IPEndPoint ip)
+    public void AddNewUser(IConnection connection, string userToken, IPEndPoint ip)
     {
         CheckDisposed();
         lock (users)
@@ -40,7 +41,7 @@ public class UserManager : IEnumerable<UserInfo>, IDisposable
             });
         }
     }
-    public void RemoveUser(Connection connection)
+    public void RemoveUser(IConnection connection)
     {
         CheckDisposed();
         lock (users)
