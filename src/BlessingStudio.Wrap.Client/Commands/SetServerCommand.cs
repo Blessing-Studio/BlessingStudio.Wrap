@@ -1,0 +1,44 @@
+﻿using BlessingStudio.Wrap.Interfaces;
+using ConsoleInteractive;
+using System.Net;
+
+namespace BlessingStudio.Wrap.Client.Commands;
+
+public class SetServerCommand : CommandBase
+{
+    public IWrapClient Client { get; }
+    public SetServerCommand(IWrapClient client) { Client = client; }
+
+    public override string GetName()
+    {
+        return "setserver";
+    }
+
+    public override IList<string> OnComplete(string[] args)
+    {
+        if (args.Length == 1)
+            return new List<string> { new IPEndPoint(new IPAddress(new byte[] { 127, 0, 0, 1 }), 25565).ToString() };
+        return new List<string>();
+    }
+
+    public override void OnExecute(string[] args)
+    {
+        if (args.Length != 1)
+        {
+            ConsoleWriter.WriteLine("参数错误 用法 serserver <ServerIP>");
+            return;
+        }
+
+        try
+        {
+            IPEndPoint iP = IPEndPoint.Parse(args[0]);
+            Client.PeerManager.Server = iP;
+            ConsoleWriter.WriteLine($"成功将IP更改为{iP.ToString()}");
+        }
+        catch
+        {
+            ConsoleWriter.WriteLine("服务器ip格式不正确 应为x.x.x.x:xxxx");
+            return;
+        }
+    }
+}

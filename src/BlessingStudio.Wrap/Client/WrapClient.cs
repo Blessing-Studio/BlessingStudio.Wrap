@@ -25,7 +25,7 @@ public class WrapClient : IDisposable, IWrapClient
     public Channel? MainChannel { get; private set; }
     public string UserToken { get; private set; } = string.Empty;
     public string DisconnectReason { get; private set; } = string.Empty;
-    public PeerManager PeerManager { get; private set; } = new PeerManager();
+    public IPeerManager PeerManager { get; private set; } = new PeerManager();
     public IPEndPoint? RemoteIP { get; private set; }
     public IPEndPoint LocalIP { get; private set; }
     public IUPnPService? UPnPService { get; private set; }
@@ -257,7 +257,7 @@ public class WrapClient : IDisposable, IWrapClient
             return;
         }
         connection = CreateConnectionToPeer(token, connectionToPeer);
-        ConnectPeerSuccessfully?.Invoke(new(token, connection));
+        ConnectPeerSuccessfully?.Invoke(new(token, connection, PeerManager.LastPort));
     }
 
     private Connection CreateConnectionToPeer(string token, TcpClient connectionToPeer)

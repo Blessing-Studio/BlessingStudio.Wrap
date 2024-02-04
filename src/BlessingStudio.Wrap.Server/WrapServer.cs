@@ -112,6 +112,11 @@ public class WrapServer
                         UserInfo? userInfo = UserManager.Find(requestPacket.UserToken);
                         if (userInfo != null)
                         {
+                            if(user == userInfo)
+                            {
+                                mainChannel.Send(new ConnectRequestInvalidatedPacket() { UserToken = requestPacket.UserToken });
+                                return;
+                            }
                             UserInfo sender = UserManager.Find(e.Connection)!;
                             Requests.AddRequest(new(sender, userInfo));
                         }

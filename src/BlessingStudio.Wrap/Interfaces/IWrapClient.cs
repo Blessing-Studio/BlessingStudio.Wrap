@@ -15,7 +15,7 @@ public interface IWrapClient
     bool IsDisposed { get; }
     IPEndPoint LocalIP { get; }
     Channel? MainChannel { get; }
-    PeerManager PeerManager { get; }
+    IPeerManager PeerManager { get; }
     IPEndPoint? RemoteIP { get; }
     List<RequestInfo> Requests { get; }
     Connection? ServerConnection { get; }

@@ -7,9 +7,11 @@ public class ConnectPeerSuccessfullyEvent : IEvent
 {
     public string UserToken {  get; set; }
     public IConnection Connection { get; set; }
-    public ConnectPeerSuccessfullyEvent(string userToken, IConnection connection)
+    public ushort Port { get; set; }
+    public ConnectPeerSuccessfullyEvent(string userToken, IConnection connection, ushort port)
     {
         UserToken = userToken;
         Connection = connection;
+        Port = port;
     }
 }

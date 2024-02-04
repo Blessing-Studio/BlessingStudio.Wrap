@@ -19,8 +19,9 @@ public class PeerManager : IDisposable, IPeerManager
     public ConcurrentDictionary<string, DateTimeOffset> KeepAliveData { get; } = new();
     public Thread KeepAliveThread { get; }
     public CancellationTokenSource KeepAliveThreadCancellationTokenSource { get; } = new();
-    public ushort Nextport { get; set; } = 42000;
-    public IPEndPoint Server = new(new IPAddress(new byte[] { 127, 0, 0, 1 }), 25565);
+    public ushort Nextport { get; set; } = (ushort)RandomUtils.GetRandomPort();
+    public ushort LastPort { get; private set; }
+    public IPEndPoint Server { get; set; } = new(new IPAddress(new byte[] { 127, 0, 0, 1 }), 25565);
     public List<string> IgnoredConnectionId { get; } = new();
     private ArrayPool<byte> Buffer { get; } = ArrayPool<byte>.Create();
     public bool IsDisposed { get; private set; } = false;
@@ -112,10 +113,7 @@ public class PeerManager : IDisposable, IPeerManager
                 );
             }
         });
-        lock (KeepAliveData)
-        {
-            KeepAliveData[token] = DateTimeOffset.Now;
-        }
+        KeepAliveData[token] = DateTimeOffset.Now;
         connection.AddHandler((DisposedEvent e) =>
         {
             KeepAliveData.Remove(token, out _);
@@ -127,13 +125,14 @@ public class PeerManager : IDisposable, IPeerManager
                 KeepAliveData[token] = DateTimeOffset.Now;
             }
         });
+        TcpListener listener = new(new IPAddress(new byte[] { 0, 0, 0, 0 }), Nextport)
+        {
+            ExclusiveAddressUse = false
+        };
+        listener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+        LastPort = Nextport;
         new Thread(() =>
         {
-            TcpListener listener = new(new IPAddress(new byte[] { 0, 0, 0, 0 }), Nextport)
-            {
-                ExclusiveAddressUse = false
-            };
-            listener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
             Nextport++;
             listener.Start();
             while (true)
