@@ -23,7 +23,7 @@ public class AcceptRequestCommand : CommandBase
     {
         if(args.Length != 1)
         {
-            ConsoleWriter.WriteLine("参数错误 用法 acceptrequest <UserToken>");
+            ConsoleWriter.WriteLine($"参数错误 用法 {GetName()} <UserToken>");
             return;
         }
         RequestInfo? requestInfo = Client.Requests.FirstOrDefault(x => x.Requester == args[0]);
@@ -32,7 +32,7 @@ public class AcceptRequestCommand : CommandBase
             ConsoleWriter.WriteLine("未找到请求");
             return;
         }
-        ConsoleWriter.WriteLine($"同意了{args[0]}的请求");
+        ConsoleWriter.WriteLine($"同意了 {args[0]} 的请求");
         Client.AcceptRequest(requestInfo);
     }
 }

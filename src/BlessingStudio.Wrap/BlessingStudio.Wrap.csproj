@@ -13,6 +13,7 @@
     <RepositoryUrl>https://github.com/Blessing-Studio/BlessingStudio.Wrap</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>P2P</PackageTags>
+    <Version>1.0.1</Version>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -28,7 +29,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BlessingStudio.WonderNetwork" Version="1.0.0" />
+    <PackageReference Include="BlessingStudio.WonderNetwork" Version="1.0.3" />
     <PackageReference Include="Waher.Networking.UPnP" Version="2.0.2" />
   </ItemGroup>
 

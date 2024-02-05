@@ -17,7 +17,7 @@ public class SetServerCommand : CommandBase
     public override IList<string> OnComplete(string[] args)
     {
         if (args.Length == 1)
-            return new List<string> { new IPEndPoint(new IPAddress(new byte[] { 127, 0, 0, 1 }), 25565).ToString() };
+            return new List<string> { Client.PeerManager.Server.ToString() };
         return new List<string>();
     }
 
@@ -33,7 +33,7 @@ public class SetServerCommand : CommandBase
         {
             IPEndPoint iP = IPEndPoint.Parse(args[0]);
             Client.PeerManager.Server = iP;
-            ConsoleWriter.WriteLine($"成功将IP更改为{iP.ToString()}");
+            ConsoleWriter.WriteLine($"成功将IP更改为{iP}");
         }
         catch
         {

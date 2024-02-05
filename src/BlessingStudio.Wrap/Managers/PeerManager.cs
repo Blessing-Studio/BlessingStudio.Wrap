@@ -1,12 +1,10 @@
-﻿using BlessingStudio.WonderNetwork;
-using BlessingStudio.WonderNetwork.Events;
+﻿using BlessingStudio.WonderNetwork.Events;
 using BlessingStudio.WonderNetwork.Interfaces;
 using BlessingStudio.Wrap.Interfaces;
 using BlessingStudio.Wrap.Protocol.Packet;
 using BlessingStudio.Wrap.Utils;
 using System.Buffers;
 using System.Collections.Concurrent;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using Channel = BlessingStudio.WonderNetwork.Channel;
@@ -250,5 +248,13 @@ public class PeerManager : IDisposable, IPeerManager
     private static string GetConnectionId(string channelName)
     {
         return channelName.Replace("connection_", string.Empty);
+    }
+
+    public void RemovePeer(string token, string reason)
+    {
+        CheckDisposed();
+        UserInfo info = UserManager.Find(token)!;
+        info.Connection.Send("main", new DisconnectPacket() { Reason = reason });
+        info.Connection.Dispose();
     }
 }

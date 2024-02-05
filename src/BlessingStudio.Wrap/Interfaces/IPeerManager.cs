@@ -19,4 +19,5 @@ public interface IPeerManager
     void Close();
     void Dispose();
     void RemovePeer(string token);
+    void RemovePeer(string token, string reason);
 }

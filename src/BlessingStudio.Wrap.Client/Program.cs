@@ -70,12 +70,15 @@ wrapClient.Connect(new IPAddress(new byte[] { 8, 137, 84, 98 }));
 MakeRequestCommand requestCommand = new(wrapClient);
 AcceptRequestCommand acceptRequestCommand = new(wrapClient);
 SetServerCommand setServerCommand = new(wrapClient);
+KickCommand kickCommand = new(wrapClient);
 commandManager.RegisterCommandExecuter(requestCommand);
 commandManager.RegisterCommandTabCompleter(requestCommand);
 commandManager.RegisterCommandExecuter(acceptRequestCommand);
 commandManager.RegisterCommandTabCompleter(acceptRequestCommand);
 commandManager.RegisterCommandExecuter(setServerCommand);
 commandManager.RegisterCommandTabCompleter(setServerCommand);
+commandManager.RegisterCommandExecuter(kickCommand);
+commandManager.RegisterCommandTabCompleter(kickCommand);
 
 wrapClient.ExpectedDisconnect += e =>
 {
