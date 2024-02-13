@@ -71,6 +71,7 @@ MakeRequestCommand requestCommand = new(wrapClient);
 AcceptRequestCommand acceptRequestCommand = new(wrapClient);
 SetServerCommand setServerCommand = new(wrapClient);
 KickCommand kickCommand = new(wrapClient);
+AutoAcceptCommand autoAcceptCommand = new(wrapClient);
 commandManager.RegisterCommandExecuter(requestCommand);
 commandManager.RegisterCommandTabCompleter(requestCommand);
 commandManager.RegisterCommandExecuter(acceptRequestCommand);
@@ -79,6 +80,8 @@ commandManager.RegisterCommandExecuter(setServerCommand);
 commandManager.RegisterCommandTabCompleter(setServerCommand);
 commandManager.RegisterCommandExecuter(kickCommand);
 commandManager.RegisterCommandTabCompleter(kickCommand);
+commandManager.RegisterCommandExecuter(autoAcceptCommand);
+commandManager.RegisterCommandTabCompleter(autoAcceptCommand);
 
 wrapClient.ExpectedDisconnect += e =>
 {
@@ -110,7 +113,11 @@ wrapClient.LoginedSuccessfully += e =>
     ConsoleWriter.WriteLine("登录成功");
     ConsoleWriter.WriteLine($"UserToken   {e.UserToken}");
 
-    ConsoleReader.BeginReadThread();
+    try
+    {
+        ConsoleReader.BeginReadThread();
+    }
+    catch { }
 };
 
 wrapClient.NewRequest += e =>

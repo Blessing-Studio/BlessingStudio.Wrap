@@ -5,6 +5,7 @@ using BlessingStudio.Wrap.Protocol.Packet;
 using BlessingStudio.Wrap.Utils;
 using System.Buffers;
 using System.Collections.Concurrent;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using Channel = BlessingStudio.WonderNetwork.Channel;
@@ -69,7 +70,7 @@ public class PeerManager : IDisposable, IPeerManager
         connection.AddHandler((ChannelCreatedEvent e) =>
         {
             Channel channel = e.Channel;
-            if (channel.ChannelName.Contains("connection_") && !IgnoredConnectionId.Contains(channel.ChannelName.Replace("connection_", string.Empty)))
+            if (channel.ChannelName.Contains("connection_") && !IgnoredConnectionId.Contains(GetConnectionId(channel.ChannelName)))
             {
                 Task.Run(() =>
                 {
@@ -192,6 +193,7 @@ public class PeerManager : IDisposable, IPeerManager
             {
                 while (true)
                 {
+                    if (client.Client == null) return;
                     int c = client.Client.Receive(buffer);
                     if (c == 0)
                     {

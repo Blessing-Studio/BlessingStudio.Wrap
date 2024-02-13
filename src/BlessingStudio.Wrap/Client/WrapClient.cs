@@ -29,6 +29,7 @@ public class WrapClient : IDisposable, IWrapClient
     public IPEndPoint? RemoteIP { get; private set; }
     public IPEndPoint LocalIP { get; private set; }
     public IUPnPService? UPnPService { get; private set; }
+    public IPEndPoint? ServerIP { get; private set; }
     public bool IsDisposed { get; private set; } = false;
     public event WonderNetwork.Events.EventHandler<NewRequestEvent>? NewRequest;
     public event WonderNetwork.Events.EventHandler<RequestInvalidatedEvent>? RequestInvalidated;
@@ -54,6 +55,7 @@ public class WrapClient : IDisposable, IWrapClient
     public void Connect(IPAddress address, int port = ConstValue.ServerPort)
     {
         CheckDisposed();
+        ServerIP = new(address, port);
         Client.Connect(address, port);
         NetworkStream networkStream = Client.GetStream();
         ServerConnection = new(new SafeNetworkStream(networkStream));
@@ -146,9 +148,22 @@ public class WrapClient : IDisposable, IWrapClient
         while (true)
         {
             Thread.Sleep(5000);
-            if (!ServerConnection.IsDisposed)
+            if (!(ServerConnection == null) && !ServerConnection.IsDisposed)
             {
                 MainChannel.Send(new KeepAlivePacket());
+            }
+            else
+            {
+                try
+                {
+                    Reconnect();
+                    Thread.Sleep(3000);
+                    Start(UserToken);
+                }
+                catch
+                {
+
+                }
             }
         }
     }
@@ -296,5 +311,14 @@ public class WrapClient : IDisposable, IWrapClient
         {
             throw new ObjectDisposedException(GetType().FullName);
         }
+    }
+
+    public void Reconnect()
+    {
+        ServerConnection?.Dispose();
+        ServerConnection = null;
+        MainChannel = null;
+        Client = new();
+        Connect(ServerIP!.Address, ServerIP.Port);
     }
 }

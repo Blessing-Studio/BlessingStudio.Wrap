@@ -32,7 +32,11 @@ namespace BlessingStudio.Wrap.Server.Managers
                         }
                         foreach (RequestInfo info in toRemove)
                         {
-                            RemoveRequest(info);
+                            try
+                            {
+                                RemoveRequest(info);
+                            }
+                            catch { }
                         }
                     }
                 }
