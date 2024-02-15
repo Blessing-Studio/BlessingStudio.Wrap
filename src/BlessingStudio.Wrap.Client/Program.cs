@@ -66,7 +66,7 @@ if (uPnP != null)
 }
 IWrapClient wrapClient = new WrapClient();
 Thread.Sleep(1000);
-wrapClient.Connect(new IPAddress(new byte[] { 8, 137, 84, 98 }));
+wrapClient.Connect(Dns.GetHostAddresses("wrap.blessing-studio.tech").First());
 MakeRequestCommand requestCommand = new(wrapClient);
 AcceptRequestCommand acceptRequestCommand = new(wrapClient);
 SetServerCommand setServerCommand = new(wrapClient);
@@ -106,6 +106,11 @@ wrapClient.RequestInvalidated += e =>
 wrapClient.ReconnectPeer += e =>
 {
     ConsoleWriter.WriteLine($"开始与{e.UserToken}反向打洞");
+};
+
+wrapClient.ConnectFailed += e =>
+{
+    ConsoleWriter.WriteLine($"与{e.UserToken}连接失败");
 };
 
 wrapClient.LoginedSuccessfully += e =>
