@@ -8,7 +8,7 @@ namespace BlessingStudio.Wrap.Utils;
 
 public static class StunUtils
 {
-    public static string STUNServer { get; set; } = "stun.qq.com";
+    public static string STUNServer { get; set; } = "stun.miwifi.com";
     public static IPEndPoint GetRemoteIP(IPEndPoint localIp)
     {
         return GetRemoteIPAsync(localIp).GetAwaiter().GetResult();
