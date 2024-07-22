@@ -1,5 +1,4 @@
 ﻿using BlessingStudio.Wrap.Client.Commands;
-using ConsoleInteractive;
 
 namespace BlessingStudio.Wrap.Client.Managers;
 
@@ -46,7 +45,7 @@ public class CommandManager
         ICommandExecuter? executer = FindExecuter(command);
         if (executer == null)
         {
-            ConsoleWriter.WriteLine($"未找到命令{command}");
+            Console.WriteLine($"未找到命令{command}");
             return;
         }
         try
@@ -55,7 +54,7 @@ public class CommandManager
         }
         catch (Exception ex)
         {
-            ConsoleWriter.WriteLine($"在执行命令{command}时发生异常 {ex.GetType().FullName} {ex.Message}");
+            Console.WriteLine($"在执行命令{command}时发生异常 {ex.GetType().FullName} {ex.Message}");
         }
     }
 

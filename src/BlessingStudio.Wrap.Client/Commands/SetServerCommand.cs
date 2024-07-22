@@ -1,5 +1,4 @@
 ﻿using BlessingStudio.Wrap.Interfaces;
-using ConsoleInteractive;
 using System.Net;
 
 namespace BlessingStudio.Wrap.Client.Commands;
@@ -25,7 +24,7 @@ public class SetServerCommand : CommandBase
     {
         if (args.Length != 1)
         {
-            ConsoleWriter.WriteLine("参数错误 用法 serserver <ServerIP>");
+            Console.WriteLine("参数错误 用法 serserver <ServerIP>");
             return;
         }
 
@@ -33,11 +32,11 @@ public class SetServerCommand : CommandBase
         {
             IPEndPoint iP = IPEndPoint.Parse(args[0]);
             Client.PeerManager.Server = iP;
-            ConsoleWriter.WriteLine($"成功将IP更改为{iP}");
+            Console.WriteLine($"成功将IP更改为{iP}");
         }
         catch
         {
-            ConsoleWriter.WriteLine("服务器ip格式不正确 应为x.x.x.x:xxxx");
+            Console.WriteLine("服务器ip格式不正确 应为x.x.x.x:xxxx");
             return;
         }
     }

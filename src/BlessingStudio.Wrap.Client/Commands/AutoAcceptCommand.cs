@@ -1,6 +1,5 @@
 ﻿
 using BlessingStudio.Wrap.Interfaces;
-using ConsoleInteractive;
 
 namespace BlessingStudio.Wrap.Client.Commands;
 
@@ -36,13 +35,13 @@ public class AutoAcceptCommand : CommandBase
     {
         if (args.Length != 1 && args.Length != 0)
         {
-            ConsoleWriter.WriteLine($"参数错误 用法 {GetName()} <State>[true|false]");
+            Console.WriteLine($"参数错误 用法 {GetName()} <State>[true|false]");
             return;
         }
 
         if (args.Length == 0)
         {
-            ConsoleWriter.WriteLine($"自动同意当前状态  {Enabled}");
+            Console.WriteLine($"自动同意当前状态  {Enabled}");
             return;
         }
 
@@ -51,11 +50,11 @@ public class AutoAcceptCommand : CommandBase
             try
             {
                 Enabled = bool.Parse(args[0]);
-                ConsoleWriter.WriteLine($"成功将自动同意状态设置为  {Enabled}");
+                Console.WriteLine($"成功将自动同意状态设置为  {Enabled}");
             }
             catch
             {
-                ConsoleWriter.WriteLine($"参数错误 用法 {GetName()} <State>[true|false]");
+                Console.WriteLine($"参数错误 用法 {GetName()} <State>[true|false]");
             }
         }
     }

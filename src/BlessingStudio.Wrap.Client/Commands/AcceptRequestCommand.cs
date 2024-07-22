@@ -1,5 +1,4 @@
 ﻿using BlessingStudio.Wrap.Interfaces;
-using ConsoleInteractive;
 
 namespace BlessingStudio.Wrap.Client.Commands;
 
@@ -23,16 +22,16 @@ public class AcceptRequestCommand : CommandBase
     {
         if(args.Length != 1)
         {
-            ConsoleWriter.WriteLine($"参数错误 用法 {GetName()} <UserToken>");
+            Console.WriteLine($"参数错误 用法 {GetName()} <UserToken>");
             return;
         }
         RequestInfo? requestInfo = Client.Requests.FirstOrDefault(x => x.Requester == args[0]);
         if(requestInfo == null)
         {
-            ConsoleWriter.WriteLine("未找到请求");
+            Console.WriteLine("未找到请求");
             return;
         }
-        ConsoleWriter.WriteLine($"同意了 {args[0]} 的请求");
+        Console.WriteLine($"同意了 {args[0]} 的请求");
         Client.AcceptRequest(requestInfo);
     }
 }

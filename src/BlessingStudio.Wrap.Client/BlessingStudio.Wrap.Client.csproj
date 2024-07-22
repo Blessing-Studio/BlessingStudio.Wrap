@@ -17,7 +17,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\refs\ConsoleInteractive\ConsoleInteractive\ConsoleInteractive\ConsoleInteractive.csproj" />
     <ProjectReference Include="..\BlessingStudio.Wrap\BlessingStudio.Wrap.csproj" />
   </ItemGroup>
 
